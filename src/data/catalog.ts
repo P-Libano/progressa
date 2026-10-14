@@ -1,4 +1,4 @@
-import { db } from '../db'
+import { META, db } from '../db'
 import { CURATED_BY_ID } from './curated'
 import type { Exercise, RawExercise } from './types'
 
@@ -8,7 +8,7 @@ export const MEDIA_ATTRIBUTION = '© Gym visual — https://gymvisual.com/'
 
 /** Sobe quando o formato de Exercise mudar, forçando novo download. */
 const CATALOG_FORMAT = 1
-const CATALOG_META_KEY = 'catalog'
+const CATALOG_META_KEY = META.catalog
 const REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000
 
 interface CatalogMeta {

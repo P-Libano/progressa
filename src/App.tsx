@@ -3,6 +3,8 @@ import { Button, Icon, Screen } from './components/ui'
 import { useCatalogBootstrap } from './lib/useCatalog'
 import Catalog from './pages/Catalog'
 import ExerciseDetail from './pages/ExerciseDetail'
+import Onboarding from './pages/Onboarding'
+import RoutinePage from './pages/RoutinePage'
 
 const TABS = [
   { to: '/treino', label: 'Treino', icon: 'dumbbell' },
@@ -70,8 +72,9 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Navigate to="/exercicios" replace />} />
-        <Route path="/treino" element={<Soon title="Treino" />} />
+        <Route path="/" element={<Navigate to="/treino" replace />} />
+        <Route path="/treino" element={<RoutinePage />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/exercicios" element={<Catalog />} />
         <Route path="/exercicio/:id" element={<ExerciseDetail />} />
         <Route path="/historico" element={<Soon title="Histórico" />} />

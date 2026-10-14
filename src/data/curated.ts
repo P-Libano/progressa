@@ -117,6 +117,9 @@ const ROWS: Row[] = [
   ['0581', 'Remada alta na máquina (high row)', 'costas', 'puxar_horizontal', C],
   ['0499', 'Remada invertida', 'costas', 'puxar_horizontal', C],
   ['2300', 'Remada invertida com joelhos flexionados', 'costas', 'puxar_horizontal', C],
+  ['3165', 'Remada com toalha', 'costas', 'puxar_horizontal', C],
+  ['3161', 'Remada unilateral com toalha', 'costas', 'puxar_horizontal', C],
+  ['1772', 'Elevação escapular deitado (elbow lift)', 'costas', 'pulldown_isolado', I],
   ['2330', 'Puxada frontal na polia', 'costas', 'puxar_vertical', C],
   ['0198', 'Puxada na polia (pulldown)', 'costas', 'puxar_vertical', C],
   ['0818', 'Puxada com pegada neutra', 'costas', 'puxar_vertical', C],
@@ -179,6 +182,8 @@ const ROWS: Row[] = [
   ['0739', 'Leg press 45°', 'quadriceps', 'agachamento', C],
   ['1760', 'Agachamento goblet com halter', 'quadriceps', 'agachamento', C],
   ['0413', 'Agachamento com halteres', 'quadriceps', 'agachamento', C],
+  ['1685', 'Agachamento livre com elevação dos braços', 'quadriceps', 'agachamento', C],
+  ['3132', 'Agachamento com apoio', 'quadriceps', 'agachamento', C],
   ['1476', 'Agachamento unilateral', 'quadriceps', 'agachamento', C],
   ['1759', 'Agachamento pistol', 'quadriceps', 'agachamento', C],
   ['2368', 'Agachamento afundo (split squat)', 'quadriceps', 'avanco', C],
@@ -247,3 +252,28 @@ export const CURATED: readonly CuratedExercise[] = ROWS.map(([id, pt, group, pat
 }))
 
 export const CURATED_BY_ID: ReadonlyMap<string, CuratedExercise> = new Map(CURATED.map((c) => [c.id, c]))
+
+/** Exigem técnica/força acima de iniciante: o gerador só usa para iniciante se não houver outra opção. */
+export const ADVANCED_IDS: ReadonlySet<string> = new Set([
+  '1759', // pistol
+  '1476', // agachamento unilateral
+  '0471', // flexão em parada de mão
+  '3193', // glute-ham raise
+  '1489', // sissy
+  '3017', // pendlay
+  '0032', // terra convencional
+  '0857', // roda abdominal
+])
+
+/** Peso corporal que precisa de barra fixa ou paralelas. */
+export const NEEDS_BAR_IDS: ReadonlySet<string> = new Set([
+  '0652', // barra fixa
+  '1326', // chin-up
+  '0651', // barra neutra
+  '0140', // barra fixa para bíceps
+  '0251', // mergulho peito
+  '0814', // mergulho tríceps
+  '0499', // remada invertida
+  '2300', // remada invertida joelhos flexionados
+  '0472', // elevação de pernas na barra
+])
