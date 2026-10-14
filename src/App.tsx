@@ -1,3 +1,4 @@
+import { Suspense, lazy, type ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router'
 import { Button, Icon, Screen } from './components/ui'
 import { useCatalogBootstrap } from './lib/useCatalog'
@@ -6,6 +7,14 @@ import ExerciseDetail from './pages/ExerciseDetail'
 import Onboarding from './pages/Onboarding'
 import RoutinePage from './pages/RoutinePage'
 import SessionPage from './pages/SessionPage'
+
+// recharts e zod só carregam quando histórico/ajustes são abertos
+const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+
+const Lazy = ({ title, children }: { title: string; children: ReactNode }) => (
+  <Suspense fallback={<Screen title={title}>Carregando…</Screen>}>{children}</Suspense>
+)
 
 const TABS = [
   { to: '/treino', label: 'Treino', icon: 'dumbbell' },
@@ -33,14 +42,6 @@ function BottomNav() {
         ))}
       </ul>
     </nav>
-  )
-}
-
-function Soon({ title }: { title: string }) {
-  return (
-    <Screen title={title}>
-      <p className="text-muted">Em construção.</p>
-    </Screen>
   )
 }
 
@@ -79,8 +80,22 @@ export default function App() {
         <Route path="/sessao/:id" element={<SessionPage />} />
         <Route path="/exercicios" element={<Catalog />} />
         <Route path="/exercicio/:id" element={<ExerciseDetail />} />
-        <Route path="/historico" element={<Soon title="Histórico" />} />
-        <Route path="/config" element={<Soon title="Ajustes" />} />
+        <Route
+          path="/historico"
+          element={
+            <Lazy title="Histórico">
+              <HistoryPage />
+            </Lazy>
+          }
+        />
+        <Route
+          path="/config"
+          element={
+            <Lazy title="Ajustes">
+              <SettingsPage />
+            </Lazy>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
