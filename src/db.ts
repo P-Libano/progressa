@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { Exercise } from './data/types'
 import type { Routine } from './domain/generator'
+import type { Session } from './domain/session'
 
 export interface MetaRow {
   key: string
@@ -11,6 +12,7 @@ export class ProgressaDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>
   meta!: EntityTable<MetaRow, 'key'>
   routines!: EntityTable<Routine, 'id'>
+  sessions!: EntityTable<Session, 'id'>
 
   constructor(name = 'progressa') {
     super(name)
@@ -20,6 +22,9 @@ export class ProgressaDB extends Dexie {
     })
     this.version(2).stores({
       routines: '++id, createdAt',
+    })
+    this.version(3).stores({
+      sessions: '++id, startedAt, status, *exerciseIds',
     })
   }
 }

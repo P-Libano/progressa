@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, Navigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { ExerciseThumb } from '../components/ExerciseMedia'
 import { SwapSheet } from '../components/SwapSheet'
 import { Chip, Icon, Screen } from '../components/ui'
@@ -9,6 +9,7 @@ import { nextDayKey } from '../domain/generator'
 import { EQUIPMENT_ACCESS_PT, GOAL_PT, LEVEL_PT, SPLIT_PT } from '../domain/profile'
 import { useExerciseMap, useExercises } from '../lib/useCatalog'
 import { replaceExercise, useActiveRoutine } from '../lib/routineStore'
+import { startOrResume, useActiveSession, useLastDoneSession } from '../lib/sessionStore'
 
 const fmtRest = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}min${s % 60 ? ` ${s % 60}s` : ''}` : `${s}s`)
 
@@ -16,7 +17,10 @@ export default function RoutinePage() {
   const routine = useActiveRoutine()
   const catalog = useExercises()
   const byId = useExerciseMap()
-  const next = routine ? nextDayKey(routine, undefined) : undefined
+  const active = useActiveSession()
+  const last = useLastDoneSession(routine?.id)
+  const navigate = useNavigate()
+  const next = routine && last !== undefined ? nextDayKey(routine, last?.dayKey) : undefined
   const [tab, setTab] = useState<string | undefined>()
   const [swap, setSwap] = useState<{ day: string; index: number } | null>(null)
 
@@ -49,7 +53,26 @@ export default function RoutinePage() {
 
       <p className="mt-3 text-sm text-muted">
         Semana: <span className="font-mono text-ink">{routine.schedule.join(' · ')}</span>
+        {last && (
+          <>
+            {' '}
+            · último: {last.dayKey} em {new Date(last.startedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+          </>
+        )}
       </p>
+
+      {active && (
+        <Link
+          to={`/sessao/${active.id}`}
+          className="mt-3 flex items-center justify-between rounded-xl border border-accent/40 bg-accent/10 px-4 py-3"
+        >
+          <span>
+            <span className="block text-sm text-accent">Treino em andamento</span>
+            <span className="font-semibold">{active.dayName}</span>
+          </span>
+          <span className="font-semibold text-accent">Continuar →</span>
+        </Link>
+      )}
 
       {routine.warnings.length > 0 && (
         <ul className="mt-3 space-y-1 rounded-xl border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
@@ -116,11 +139,11 @@ export default function RoutinePage() {
       </ol>
 
       <button
-        disabled
-        className="mt-5 h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink opacity-40"
-        title="Disponível na próxima etapa"
+        disabled={!!active}
+        onClick={async () => navigate(`/sessao/${await startOrResume(routine, day.key)}`)}
+        className="mt-5 h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink disabled:opacity-40"
       >
-        Iniciar treino {day.key}
+        {active ? 'Conclua o treino em andamento' : `Iniciar treino ${day.key}`}
       </button>
 
       {swap && swapping && (

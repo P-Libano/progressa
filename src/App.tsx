@@ -5,6 +5,7 @@ import Catalog from './pages/Catalog'
 import ExerciseDetail from './pages/ExerciseDetail'
 import Onboarding from './pages/Onboarding'
 import RoutinePage from './pages/RoutinePage'
+import SessionPage from './pages/SessionPage'
 
 const TABS = [
   { to: '/treino', label: 'Treino', icon: 'dumbbell' },
@@ -75,6 +76,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/treino" replace />} />
         <Route path="/treino" element={<RoutinePage />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/sessao/:id" element={<SessionPage />} />
         <Route path="/exercicios" element={<Catalog />} />
         <Route path="/exercicio/:id" element={<ExerciseDetail />} />
         <Route path="/historico" element={<Soon title="Histórico" />} />
