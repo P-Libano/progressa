@@ -1,0 +1,35 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-bg: #0b0d10;
+  --color-surface: #14171c;
+  --color-surface-2: #1c2027;
+  --color-line: #262b33;
+  --color-ink: #e8eaed;
+  --color-muted: #8b929c;
+  --color-accent: #a3e635;
+  --color-accent-ink: #10140a;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* GIFs do dataset são 180x180: não ampliar além do dobro para não borrar. */
+.gif-frame {
+  image-rendering: auto;
+  background: #fff;
+}
