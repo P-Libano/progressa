@@ -36,4 +36,5 @@ export const META = {
   catalog: 'catalog',
   profile: 'profile',
   activeRoutine: 'activeRoutine',
+  apiKey: 'anthropicApiKey',
 } as const

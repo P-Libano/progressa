@@ -74,6 +74,20 @@ export default function RoutinePage() {
         </Link>
       )}
 
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <Link to="/ia/rotina" className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2.5 hover:border-muted">
+          <Icon name="sparkle" className="size-4 text-accent" /> Gerar rotina com IA
+        </Link>
+        <Link to="/ia/revisao" className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2.5 hover:border-muted">
+          <Icon name="sparkle" className="size-4 text-accent" /> Revisar semana
+        </Link>
+      </div>
+      {routine.source === 'ia' && routine.notes && (
+        <p className="mt-3 rounded-xl border border-line bg-surface p-3 text-xs leading-relaxed text-muted">
+          <span className="text-accent">Rotina gerada pela IA.</span> {routine.notes}
+        </p>
+      )}
+
       {routine.warnings.length > 0 && (
         <ul className="mt-3 space-y-1 rounded-xl border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
           {routine.warnings.map((w) => (

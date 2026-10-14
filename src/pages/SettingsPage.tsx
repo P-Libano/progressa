@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type ReactNode } from 'react'
+import { ApiKeyCard } from '../components/ApiKeyCard'
 import { Button, Screen } from '../components/ui'
 import { MEDIA_ATTRIBUTION } from '../data/catalog'
 import { db } from '../db'
@@ -99,6 +100,8 @@ export default function SettingsPage() {
           )}
         </div>
       </Card>
+
+      <ApiKeyCard />
 
       <Card title="Sobre">
         <p className="text-sm text-muted">

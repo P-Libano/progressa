@@ -11,6 +11,8 @@ import SessionPage from './pages/SessionPage'
 // recharts e zod só carregam quando histórico/ajustes são abertos
 const HistoryPage = lazy(() => import('./pages/HistoryPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const AiRoutinePage = lazy(() => import('./pages/AiRoutinePage'))
+const AiReviewPage = lazy(() => import('./pages/AiReviewPage'))
 
 const Lazy = ({ title, children }: { title: string; children: ReactNode }) => (
   <Suspense fallback={<Screen title={title}>Carregando…</Screen>}>{children}</Suspense>
@@ -93,6 +95,22 @@ export default function App() {
           element={
             <Lazy title="Ajustes">
               <SettingsPage />
+            </Lazy>
+          }
+        />
+        <Route
+          path="/ia/rotina"
+          element={
+            <Lazy title="Rotina com IA">
+              <AiRoutinePage />
+            </Lazy>
+          }
+        />
+        <Route
+          path="/ia/revisao"
+          element={
+            <Lazy title="Revisar semana">
+              <AiReviewPage />
             </Lazy>
           }
         />
