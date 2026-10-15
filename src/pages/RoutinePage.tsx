@@ -170,7 +170,7 @@ export default function RoutinePage() {
         <h2 className="text-sm font-medium text-muted">Semanas do ciclo</h2>
         {next && <span className="text-xs text-muted">próxima: semana {next.weekIndex}</span>}
       </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Semanas">
+      <div className="mt-1 flex gap-1.5 overflow-x-auto pt-1.5 pr-1.5 pb-1" role="tablist" aria-label="Semanas">
         {weeks.map((w) => (
           <button
             key={w.index}
@@ -194,7 +194,7 @@ export default function RoutinePage() {
         <p className="mt-2 text-xs text-warn">Semana de deload: menos séries, carga mais leve e RPE até {program.goal.periodization.deload.rpeMax}.</p>
       )}
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Dias">
+      <div className="mt-2 flex gap-2 overflow-x-auto pt-1.5 pr-1.5 pb-1" role="tablist" aria-label="Dias">
         {week.days.map((d) => (
           <button
             key={d.key}

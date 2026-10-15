@@ -98,6 +98,21 @@ body {
   min-height: 100dvh;
 }
 
+/* Nada passa da largura da tela (só as faixas de abas rolam, dentro delas mesmas). */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* iOS amplia a página ao focar um campo com fonte menor que 16px e não volta sozinho. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
 /* Títulos e números: Archivo semi-expandida, algarismos tabulares. */
 @utility display {
   font-family: var(--font-display);
