@@ -15,18 +15,21 @@ export function Screen({
   const navigate = useNavigate()
   return (
     <div className="mx-auto w-full max-w-xl pb-24">
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-line bg-bg/90 px-4 backdrop-blur">
-        {back && (
-          <button
-            onClick={() => navigate(-1)}
-            aria-label="Voltar"
-            className="-ml-2 grid size-10 place-items-center rounded-full text-muted hover:bg-surface-2"
-          >
-            <Icon name="back" />
-          </button>
-        )}
-        <h1 className="display min-w-0 flex-1 truncate text-lg font-bold">{title}</h1>
-        {action}
+      {/* No app instalado (iOS, barra translúcida) a página começa sob a barra de status: o cabeçalho desce junto. */}
+      <header className="sticky top-0 z-10 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <div className="flex h-14 items-center gap-2 px-4">
+          {back && (
+            <button
+              onClick={() => navigate(-1)}
+              aria-label="Voltar"
+              className="-ml-2 grid size-10 place-items-center rounded-full text-muted hover:bg-surface-2"
+            >
+              <Icon name="back" />
+            </button>
+          )}
+          <h1 className="display min-w-0 flex-1 truncate text-lg font-bold">{title}</h1>
+          {action}
+        </div>
       </header>
       <div className="px-4 pt-4">{children}</div>
     </div>
