@@ -3,8 +3,8 @@
 //   $env:PROGRESSA_LIVE_KEY="sk-ant-..."; npx vitest run src/ai/ai.live.test.ts
 import { describe, expect, it } from 'vitest'
 import { loadFixtureCatalog } from '../data/__fixtures__/load'
-import { formatRoutine } from '../domain/format'
 import type { Profile } from '../domain/profile'
+import { allWeeks } from '../programacao/program'
 import { anthropicTransport, type AiTransport } from './client'
 import { AiError, generateRoutineWithAI } from './index'
 
@@ -27,9 +27,13 @@ describe.skipIf(!key)('Claude API ao vivo', () => {
       const r = await generateRoutineWithAI(profileA, { apiKey: key, equipmentOf, transport: spy })
       console.log('JSON devolvido pela IA:\n' + JSON.stringify(JSON.parse(raw), null, 2))
       console.log('validação: OK')
-      console.log(formatRoutine(r, (id) => byId.get(id)?.namePt ?? id, (id) => equipmentOf(id)!))
+      for (const d of allWeeks(r)[0].days) {
+        console.log(`${d.key} ${d.name}`)
+        for (const i of d.groups.flatMap((g) => g.items)) console.log(`  ${byId.get(i.exerciseId)?.namePt ?? i.exerciseId} ${i.sets}x${i.reps?.min}–${i.reps?.max} (${i.role})`)
+      }
       console.log('notas:', r.notes)
-      expect(r.days).toHaveLength(3)
+      console.log('por quê:', r.explanation)
+      expect(allWeeks(r)[0].days).toHaveLength(3)
     } catch (e) {
       console.log('JSON devolvido pela IA (se houver):', raw || '(nenhum)')
       console.log('erro:', e instanceof AiError ? `[${e.kind}] ${e.message}` : e)

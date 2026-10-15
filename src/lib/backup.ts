@@ -1,21 +1,25 @@
-import { z } from './zod'
 import { MUSCLE_GROUPS } from '../data/curated'
 import { META, db } from '../db'
-import type { Routine } from '../domain/generator'
-import type { Session } from '../domain/session'
+import type { EquipmentLookup } from '../programacao/generator'
+import { migrateRoutine, migrateSession, type RoutineV1, type SessionV1 } from '../programacao/migrate'
+import { GOAL_IDS, type BackupV2, type Program, type SessionV2 } from '../programacao/types'
+import { z } from './zod'
 
 /**
- * Backup dos dados do usuário: perfil, rotinas e sessões.
+ * Backup dos dados do usuário: perfil, programas e sessões.
  * Fica de fora o catálogo (é rebaixado do CDN) e a chave da API (segredo local).
+ * Formato 2 (atual). O formato 1 (rotinas sem semanas) é aceito e migrado.
  */
 
-export const BACKUP_FORMAT = 1
+export const BACKUP_FORMAT = 2
 
 const group = z.enum(MUSCLE_GROUPS)
 const num = z.number().finite()
+const range = z.object({ min: num, max: num })
+const role = z.enum(['principal', 'composto', 'isolador', 'condicionamento'])
 
 const profileSchema = z.object({
-  goal: z.enum(['hipertrofia', 'forca']),
+  goal: z.enum(GOAL_IDS),
   daysPerWeek: z.number().int().min(2).max(6),
   split: z.enum(['AB', 'ABC', 'ABCD', 'upper_lower', 'full_body']),
   equipment: z.enum(['academia', 'halteres', 'peso_corporal']),
@@ -23,56 +27,99 @@ const profileSchema = z.object({
   pullupBar: z.boolean().optional(),
 })
 
-const prescription = {
-  sets: z.number().int().min(1).max(10),
-  repMin: z.number().int().min(1),
-  repMax: z.number().int().min(1),
+const prescription = z.object({
+  exerciseId: z.string(),
+  role,
+  group,
+  sets: z.number().int().min(1).max(12),
+  reps: range.optional(),
   restSec: z.number().int().min(0),
-}
+  pct1rm: range.optional(),
+  rpe: range.optional(),
+  workSec: z.number().int().optional(),
+})
 
-const routineSchema = z.object({
+const programSchema = z.object({
   id: z.number().int(),
   createdAt: num,
   source: z.enum(['local', 'ia']),
   profile: profileSchema,
-  days: z.array(
+  // o snapshot do objetivo é conferido só no essencial; o resto vem do próprio app
+  goal: z.looseObject({ id: z.enum(GOAL_IDS), nome: z.string() }),
+  blocks: z.array(
     z.object({
-      key: z.string(),
-      name: z.string(),
-      exercises: z.array(z.object({ exerciseId: z.string(), group, compound: z.boolean(), ...prescription })),
+      index: z.number().int(),
+      weeks: z.array(
+        z.object({
+          index: z.number().int(),
+          kind: z.enum(['carga', 'deload']),
+          intensityTarget: num.optional(),
+          days: z.array(
+            z.object({
+              key: z.string(),
+              name: z.string(),
+              groups: z.array(
+                z.object({
+                  kind: z.enum(['simples', 'superset', 'circuito', 'finisher']),
+                  items: z.array(prescription).min(1),
+                  rounds: z.number().int().optional(),
+                  restBetweenSec: num.optional(),
+                  restAfterSec: num.optional(),
+                  durationMin: num.optional(),
+                }),
+              ),
+            }),
+          ),
+        }),
+      ),
     }),
   ),
-  schedule: z.array(z.string()),
+  repeat: z.boolean(),
+  weeklyVolume: z.record(z.string(), num),
+  explanation: z.string(),
   warnings: z.array(z.string()),
   notes: z.string().optional(),
 })
 
-const result = z.object({ date: num, sets: z.array(z.object({ weight: num, reps: num })) })
+const resultSchema = z.object({
+  date: num,
+  weekKind: z.enum(['carga', 'deload']),
+  prescription,
+  sets: z.array(z.object({ weight: num, reps: num, rpe: num.nullable(), restBeforeSec: num.nullable() })),
+})
 
 const sessionSchema = z.object({
   id: z.number().int(),
-  routineId: z.number().int(),
+  programId: z.number().int(),
+  weekIndex: z.number().int(),
+  weekKind: z.enum(['carga', 'deload']),
   dayKey: z.string(),
   dayName: z.string(),
   startedAt: num,
   finishedAt: num.optional(),
+  durationSec: num.optional(),
   status: z.enum(['active', 'done']),
   exerciseIds: z.array(z.string()),
   exercises: z.array(
     z.object({
       exerciseId: z.string(),
+      role,
       group,
-      compound: z.boolean(),
-      ...prescription,
+      groupIndex: z.number().int(),
+      groupKind: z.enum(['simples', 'superset', 'circuito', 'finisher']),
+      prescription,
       suggestion: z.object({
-        kind: z.enum(['start', 'increase', 'keep', 'deload']),
+        kind: z.enum(['start', 'increase', 'keep', 'decrease', 'deload', 'less_rest', 'add_set', 'more_reps']),
         weight: num.nullable(),
+        restSec: num.optional(),
+        sets: z.number().int().optional(),
+        reps: range.optional(),
         failStreak: z.number().int(),
         reason: z.string(),
       }),
-      previous: result.optional(),
-      recent: z.array(result).optional(),
-      log: z.array(z.object({ weight: num.nullable(), reps: num.nullable(), done: z.boolean() })),
+      previous: resultSchema.optional(),
+      recent: z.array(resultSchema).optional(),
+      log: z.array(z.object({ weight: num.nullable(), reps: num.nullable(), rpe: num.nullable(), done: z.boolean(), completedAt: num.optional() })),
     }),
   ),
   restUntil: num.optional(),
@@ -81,38 +128,96 @@ const sessionSchema = z.object({
 
 export const backupSchema = z.object({
   app: z.literal('progressa'),
-  format: z.literal(BACKUP_FORMAT),
+  format: z.literal(2),
   exportedAt: z.string(),
   profile: profileSchema.nullable(),
-  activeRoutineId: z.number().int().nullable(),
-  routines: z.array(routineSchema),
+  activeProgramId: z.number().int().nullable(),
+  programs: z.array(programSchema),
   sessions: z.array(sessionSchema),
 })
 
-export type Backup = z.infer<typeof backupSchema>
+// ── formato 1 (só para importar backups antigos) ──
+const v1Exercise = z.object({
+  exerciseId: z.string(),
+  group,
+  compound: z.boolean(),
+  sets: z.number().int().min(1).max(10),
+  repMin: z.number().int().min(1),
+  repMax: z.number().int().min(1),
+  restSec: z.number().int().min(0),
+})
+const v1Result = z.object({ date: num, sets: z.array(z.object({ weight: num, reps: num })) })
+const backupSchemaV1 = z.object({
+  app: z.literal('progressa'),
+  format: z.literal(1),
+  exportedAt: z.string(),
+  profile: profileSchema.nullable(),
+  activeRoutineId: z.number().int().nullable(),
+  routines: z.array(
+    z.object({
+      id: z.number().int(),
+      createdAt: num,
+      source: z.enum(['local', 'ia']),
+      profile: profileSchema,
+      days: z.array(z.object({ key: z.string(), name: z.string(), exercises: z.array(v1Exercise) })),
+      schedule: z.array(z.string()),
+      warnings: z.array(z.string()),
+      notes: z.string().optional(),
+    }),
+  ),
+  sessions: z.array(
+    z.object({
+      id: z.number().int(),
+      routineId: z.number().int(),
+      dayKey: z.string(),
+      dayName: z.string(),
+      startedAt: num,
+      finishedAt: num.optional(),
+      status: z.enum(['active', 'done']),
+      exerciseIds: z.array(z.string()),
+      exercises: z.array(
+        v1Exercise.extend({
+          suggestion: z.object({ kind: z.string(), weight: num.nullable(), failStreak: z.number().int(), reason: z.string() }),
+          previous: v1Result.optional(),
+          recent: z.array(v1Result).optional(),
+          log: z.array(z.object({ weight: num.nullable(), reps: num.nullable(), done: z.boolean() })),
+        }),
+      ),
+      restUntil: num.optional(),
+      restTotal: num.optional(),
+    }),
+  ),
+})
+
+export type Backup = BackupV2
 
 export async function exportData(now = new Date()): Promise<Backup> {
-  const [profile, active, routines, sessions] = await Promise.all([
+  const [profile, active, programs, sessions] = await Promise.all([
     db.meta.get(META.profile),
-    db.meta.get(META.activeRoutine),
-    db.routines.toArray(),
+    db.meta.get(META.activeProgram),
+    db.programs.toArray(),
     db.sessions.toArray(),
   ])
   return {
     app: 'progressa',
-    format: BACKUP_FORMAT,
+    format: 2,
     exportedAt: now.toISOString(),
     profile: (profile?.value as Backup['profile']) ?? null,
-    activeRoutineId: (active?.value as number | undefined) ?? null,
-    routines: routines as Backup['routines'],
-    sessions: sessions as Backup['sessions'],
+    activeProgramId: (active?.value as number | undefined) ?? null,
+    programs,
+    sessions,
   }
 }
 
 export class BackupError extends Error {}
 
-/** Valida o JSON e devolve uma mensagem amigável com o primeiro problema encontrado. */
-export function parseBackup(text: string): Backup {
+const issueText = (e: z.ZodError) => {
+  const issue = e.issues[0]
+  return `Backup inválido em "${issue.path.map(String).join('.') || 'raiz'}": ${issue.message}`
+}
+
+/** Valida o JSON (formato 1 ou 2) e devolve sempre o formato 2. Mensagens amigáveis em pt-BR. */
+export function parseBackup(text: string, equipmentOf: EquipmentLookup = () => undefined): Backup & { migratedFrom?: 1 } {
   let raw: unknown
   try {
     raw = JSON.parse(text)
@@ -122,37 +227,50 @@ export function parseBackup(text: string): Backup {
   if (typeof raw !== 'object' || raw === null || (raw as { app?: unknown }).app !== 'progressa') {
     throw new BackupError('Este arquivo não é um backup do Progressa.')
   }
-  if ((raw as { format?: unknown }).format !== BACKUP_FORMAT) {
-    throw new BackupError(`Versão de backup não suportada (esperado formato ${BACKUP_FORMAT}).`)
+  const format = (raw as { format?: unknown }).format
+  if (format === 1) {
+    const v1 = backupSchemaV1.safeParse(raw)
+    if (!v1.success) throw new BackupError(issueText(v1.error))
+    const b = v1.data
+    return {
+      app: 'progressa',
+      format: 2,
+      exportedAt: b.exportedAt,
+      profile: b.profile,
+      activeProgramId: b.activeRoutineId,
+      programs: b.routines.map((r) => migrateRoutine(r as RoutineV1, equipmentOf)),
+      sessions: b.sessions.map((s) => migrateSession(s as SessionV1)),
+      migratedFrom: 1,
+    }
+  }
+  if (format !== BACKUP_FORMAT) {
+    throw new BackupError(`Versão de backup não suportada (o app lê os formatos 1 e ${BACKUP_FORMAT}).`)
   }
   const parsed = backupSchema.safeParse(raw)
-  if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    throw new BackupError(`Backup inválido em "${issue.path.join('.') || 'raiz'}": ${issue.message}`)
-  }
-  return parsed.data
+  if (!parsed.success) throw new BackupError(issueText(parsed.error))
+  return parsed.data as unknown as Backup
 }
 
-/** Substitui perfil, rotinas e sessões pelos do backup (o catálogo fica). */
-export async function importData(b: Backup): Promise<{ routines: number; sessions: number }> {
-  await db.transaction('rw', db.meta, db.routines, db.sessions, async () => {
-    await db.routines.clear()
+/** Substitui perfil, programas e sessões pelos do backup (o catálogo e a chave da API ficam). */
+export async function importData(b: Backup): Promise<{ programs: number; sessions: number }> {
+  await db.transaction('rw', db.meta, db.programs, db.sessions, async () => {
+    await db.programs.clear()
     await db.sessions.clear()
-    await db.meta.bulkDelete([META.profile, META.activeRoutine])
-    await db.routines.bulkPut(b.routines as Routine[])
-    await db.sessions.bulkPut(b.sessions as Session[])
+    await db.meta.bulkDelete([META.profile, META.activeProgram])
+    await db.programs.bulkPut(b.programs as Program[])
+    await db.sessions.bulkPut(b.sessions as SessionV2[])
     if (b.profile) await db.meta.put({ key: META.profile, value: b.profile })
-    if (b.activeRoutineId !== null) await db.meta.put({ key: META.activeRoutine, value: b.activeRoutineId })
+    if (b.activeProgramId !== null) await db.meta.put({ key: META.activeProgram, value: b.activeProgramId })
   })
-  return { routines: b.routines.length, sessions: b.sessions.length }
+  return { programs: b.programs.length, sessions: b.sessions.length }
 }
 
-/** Apaga dados do usuário (mantém o catálogo baixado). */
+/** Apaga dados do usuário (mantém o catálogo baixado e a chave da API). */
 export async function wipeUserData() {
-  await db.transaction('rw', db.meta, db.routines, db.sessions, async () => {
-    await db.routines.clear()
+  await db.transaction('rw', db.meta, db.programs, db.sessions, async () => {
+    await db.programs.clear()
     await db.sessions.clear()
-    await db.meta.bulkDelete([META.profile, META.activeRoutine])
+    await db.meta.bulkDelete([META.profile, META.activeProgram])
   })
 }
 

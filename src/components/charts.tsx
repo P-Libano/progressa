@@ -12,7 +12,7 @@ import {
   YAxis,
 } from 'recharts'
 import { MUSCLE_GROUP_PT, type MuscleGroup } from '../data/curated'
-import { fmtKg } from '../domain/progression'
+import { fmtKg } from '../programacao/progression/common'
 import { fmtDay, type LoadPoint } from '../domain/stats'
 
 // Tokens (iguais ao index.css). Marcas usam --color-chart; texto nunca usa a cor da série.

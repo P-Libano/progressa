@@ -1,19 +1,9 @@
 import { NEEDS_BAR_IDS } from '../data/curated'
+import type { EquipmentAccess, GoalId, Level, Split, UserProfile } from '../programacao/types'
 
-export type Goal ='hipertrofia' | 'forca'
-export type Split = 'AB' | 'ABC' | 'ABCD' | 'upper_lower' | 'full_body'
-export type EquipmentAccess = 'academia' | 'halteres' | 'peso_corporal'
-export type Level = 'iniciante' | 'intermediario' | 'avancado'
-
-export interface Profile {
-  goal: Goal
-  daysPerWeek: number // 2–6
-  split: Split
-  equipment: EquipmentAccess
-  level: Level
-  /** Tem barra fixa/paralelas? Ausente = padrão da opção de equipamento. */
-  pullupBar?: boolean
-}
+export type { EquipmentAccess, Level, Split } from '../programacao/types'
+export type Goal = GoalId
+export type Profile = UserProfile
 
 export const DEFAULT_PULLUP_BAR: Record<EquipmentAccess, boolean> = {
   academia: true,
@@ -29,7 +19,13 @@ export function isAvailable(p: Profile, id: string, equipment: string | undefine
   return hasPullupBar(p) || !NEEDS_BAR_IDS.has(id)
 }
 
-export const GOAL_PT: Record<Goal, string> = { hipertrofia: 'Hipertrofia', forca: 'Força' }
+export const GOAL_PT: Record<Goal, string> = {
+  forca: 'Força',
+  hipertrofia: 'Hipertrofia',
+  gasto_energetico: 'Gasto energético',
+  resistencia: 'Resistência muscular',
+  powerbuilding: 'Força + hipertrofia',
+}
 
 export const SPLIT_PT: Record<Split, string> = {
   AB: 'AB',
@@ -76,21 +72,23 @@ export const EQUIPMENT_SETS: Record<EquipmentAccess, ReadonlySet<string>> = {
     'assisted',
     'kettlebell',
     'wheel roller',
+    'rope',
+    'stationary bike',
   ]),
   halteres: new Set(['dumbbell', 'body weight']),
   peso_corporal: new Set(['body weight']),
 }
 
-/** Quantos dias distintos (letras) cada divisão tem. */
+/** Letras (dias distintos) de cada divisão. */
 export const SPLIT_DAY_KEYS: Record<Split, string[]> = {
   AB: ['A', 'B'],
   ABC: ['A', 'B', 'C'],
   ABCD: ['A', 'B', 'C', 'D'],
   upper_lower: ['S', 'I'],
-  full_body: ['1', '2', '3'],
+  full_body: ['F'],
 }
 
-/** Divisão recomendada por frequência (sugestão no onboarding). */
+/** Divisão recomendada por frequência (o objetivo pode sobrepor: ver recommendedSplitFor). */
 export function recommendedSplit(days: number): Split {
   if (days <= 3) return days === 2 ? 'full_body' : 'ABC'
   if (days === 4) return 'upper_lower'

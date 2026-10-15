@@ -1,20 +1,23 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
-import type { Routine } from '../domain/generator'
-import { buildSession, type Session, type SetLog } from '../domain/session'
+import { activeDurationSec, buildSession, type Session, type SetLog } from '../domain/session'
+import type { Program } from '../programacao/types'
 
 export async function getActiveSession(): Promise<Session | undefined> {
   return db.sessions.where('status').equals('active').first()
 }
 
 /** Retoma a sessão em andamento ou cria a do dia pedido. */
-export async function startOrResume(routine: Routine, dayKey: string, now = Date.now()): Promise<number> {
-  return db.transaction('rw', db.sessions, async () => {
+export async function startOrResume(program: Program, weekIndex: number, dayKey: string, now = Date.now()): Promise<number> {
+  return db.transaction('rw', db.sessions, db.exercises, async () => {
     const active = await getActiveSession()
     if (active) return active.id!
-    const ids = routine.days.find((d) => d.key === dayKey)?.exercises.map((e) => e.exerciseId) ?? []
+    const day = program.blocks.flatMap((b) => b.weeks).find((w) => w.index === weekIndex)?.days.find((d) => d.key === dayKey)
+    const ids = day?.groups.flatMap((g) => g.items.map((i) => i.exerciseId)) ?? []
     const past = await db.sessions.where('exerciseIds').anyOf(ids).distinct().toArray()
-    return (await db.sessions.add(buildSession(routine, dayKey, past, now))) as number
+    const equipment = new Map((await db.exercises.bulkGet(ids)).filter((e) => !!e).map((e) => [e!.id, e!.equipment]))
+    const s = buildSession(program, weekIndex, dayKey, past, (id) => equipment.get(id) === 'body weight', now)
+    return (await db.sessions.add(s)) as number
   })
 }
 
@@ -32,16 +35,22 @@ export const updateSet = (id: number, ex: number, set: number, patch: Partial<Se
     Object.assign(s.exercises[ex].log[set], patch)
   })
 
-/** Marca/desmarca a série. Ao concluir, inicia o descanso do exercício. */
+/**
+ * Marca/desmarca a série. Ao concluir, registra o horário e inicia o descanso da prescrição
+ * (em superset/circuito, o item que não é o último tem descanso curto entre exercícios).
+ */
 export const toggleSetDone = (id: number, ex: number, set: number, now = Date.now()) =>
   mutate(id, (s) => {
     const e = s.exercises[ex]
     const log = e.log[set]
     log.done = !log.done
     if (log.done) {
-      if (log.reps === null) log.reps = e.repMax // marcar sem digitar = fez o alvo
-      s.restUntil = now + e.restSec * 1000
-      s.restTotal = e.restSec
+      log.completedAt = now
+      if (log.reps === null) log.reps = e.prescription.reps?.max ?? 1 // sem digitar = fez o alvo (condicionamento: 1 volta)
+      s.restUntil = now + e.prescription.restSec * 1000
+      s.restTotal = e.prescription.restSec
+    } else {
+      delete log.completedAt
     }
   })
 
@@ -49,7 +58,7 @@ export const addSet = (id: number, ex: number) =>
   mutate(id, (s) => {
     const log = s.exercises[ex].log
     const last = log[log.length - 1]
-    log.push({ weight: last?.weight ?? null, reps: null, done: false })
+    log.push({ weight: last?.weight ?? null, reps: null, rpe: null, done: false })
   })
 
 export const removeLastSet = (id: number, ex: number) =>
@@ -76,19 +85,20 @@ export const finishSession = (id: number, now = Date.now()) =>
   mutate(id, (s) => {
     s.status = 'done'
     s.finishedAt = now
+    s.durationSec = activeDurationSec(s, now)
     s.restUntil = undefined
   })
 
 export const discardSession = (id: number) => db.sessions.delete(id)
 
-/** Última sessão concluída da rotina (define o próximo dia). */
-export async function lastDoneSession(routineId: number): Promise<Session | undefined> {
-  const done = await db.sessions.where('status').equals('done').toArray()
-  return done.filter((s) => s.routineId === routineId).sort((a, b) => b.startedAt - a.startedAt)[0]
+/** Última sessão concluída do programa (define o próximo treino). */
+export async function lastDoneSession(programId: number): Promise<Session | undefined> {
+  const done = await db.sessions.where('programId').equals(programId).toArray()
+  return done.filter((s) => s.status === 'done').sort((a, b) => b.startedAt - a.startedAt)[0]
 }
 
 export const useActiveSession = () => useLiveQuery(async () => (await getActiveSession()) ?? null, [])
 export const useSession = (id: number | undefined) =>
   useLiveQuery(async () => (id === undefined ? null : ((await db.sessions.get(id)) ?? null)), [id])
-export const useLastDoneSession = (routineId: number | undefined) =>
-  useLiveQuery(async () => (routineId === undefined ? null : ((await lastDoneSession(routineId)) ?? null)), [routineId])
+export const useLastDoneSession = (programId: number | undefined) =>
+  useLiveQuery(async () => (programId === undefined ? null : ((await lastDoneSession(programId)) ?? null)), [programId])

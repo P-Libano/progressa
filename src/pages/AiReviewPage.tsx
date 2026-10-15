@@ -8,9 +8,10 @@ import { Button, Icon, Screen } from '../components/ui'
 import { displayName } from '../data/catalog'
 import type { CuratedExercise } from '../data/curated'
 import { db } from '../db'
-import { fmtKg } from '../domain/progression'
 import { useApiKey } from '../lib/apiKey'
-import { replaceExercise, useActiveRoutine } from '../lib/routineStore'
+import { replaceExercise, useActiveProgram as useActiveRoutine } from '../lib/programStore'
+import { allWeeks } from '../programacao/program'
+import { fmtKg } from '../programacao/progression/common'
 import { useExerciseMap } from '../lib/useCatalog'
 import { AiErrorBox } from './AiRoutinePage'
 
@@ -58,11 +59,15 @@ export default function AiReviewPage() {
     }
   }
 
-  /** Troca o exercício em todos os dias da rotina em que ele aparece. */
+  /** Troca o exercício em todos os dias do programa em que ele aparece (todas as semanas). */
   const applySwap = async (fromId: string, toId: string, idx: number) => {
-    for (const d of routine.days) {
-      const i = d.exercises.findIndex((e) => e.exerciseId === fromId)
-      if (i >= 0) await replaceExercise(routine.id!, d.key, i, toId)
+    const days = allWeeks(routine)[0].days
+    // sequencial: cada troca lê e regrava o programa inteiro
+    for (const d of days) {
+      for (let gi = 0; gi < d.groups.length; gi++) {
+        const ii = d.groups[gi].items.findIndex((e) => e.exerciseId === fromId)
+        if (ii >= 0) await replaceExercise(routine.id!, d.key, gi, ii, toId)
+      }
     }
     setApplied((prev) => new Set(prev).add(idx))
   }

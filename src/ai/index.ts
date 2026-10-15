@@ -1,9 +1,9 @@
 import type { CuratedExercise } from '../data/curated'
-import type { Routine } from '../domain/generator'
 import type { Profile } from '../domain/profile'
 import type { Session } from '../domain/session'
+import type { Program } from '../programacao/types'
 import { anthropicTransport, type AiTransport } from './client'
-import { REVIEW_SYSTEM, ROUTINE_SYSTEM, availableExercises, reviewPrompt, routinePrompt } from './context'
+import { REVIEW_SYSTEM, ROUTINE_SYSTEM, availableExercises, programExerciseIds, reviewPrompt, routinePrompt } from './context'
 import { aiReviewSchema, aiRoutineSchema, type AiReview } from './schemas'
 import { AiError, parseAiReview, parseAiRoutine } from './validate'
 
@@ -21,8 +21,8 @@ const requireKey = (k: string | undefined) => {
   return k.trim()
 }
 
-/** "Gerar rotina com IA": perfil + lista resumida de exercícios → rotina validada (não ativada). */
-export async function generateRoutineWithAI(profile: Profile, deps: Deps): Promise<Routine> {
+/** "Gerar rotina com IA": perfil + lista resumida de exercícios → programa validado (não ativado). */
+export async function generateRoutineWithAI(profile: Profile, deps: Deps): Promise<Program> {
   const key = requireKey(deps.apiKey)
   const list = availableExercises(profile, deps.equipmentOf)
   const res = await (deps.transport ?? anthropicTransport)(key, {
@@ -30,25 +30,25 @@ export async function generateRoutineWithAI(profile: Profile, deps: Deps): Promi
     prompt: routinePrompt(profile, list, deps.equipmentOf),
     schema: aiRoutineSchema,
   })
-  return parseAiRoutine(res.text, profile, new Map(list.map((c) => [c.id, c])))
+  return parseAiRoutine(res.text, profile, new Map(list.map((c) => [c.id, c])), deps.equipmentOf)
 }
 
-/** "Revisar semana": histórico de 14 dias + rotina → resumo e ajustes. */
+/** "Revisar semana": histórico de 14 dias + programa → resumo e ajustes. */
 export async function reviewWeekWithAI(
-  routine: Routine,
+  program: Program,
   sessions: Session[],
   nameOf: (id: string) => string,
   deps: Deps,
 ): Promise<AiReview & { alternatives: ReadonlyMap<string, CuratedExercise> }> {
   const key = requireKey(deps.apiKey)
-  const inRoutine = new Set(routine.days.flatMap((d) => d.exercises.map((e) => e.exerciseId)))
-  const alternatives = availableExercises(routine.profile, deps.equipmentOf).filter((c) => !inRoutine.has(c.id))
+  const inProgram = programExerciseIds(program)
+  const alternatives = availableExercises(program.profile, deps.equipmentOf).filter((c) => !inProgram.has(c.id))
   const altMap = new Map(alternatives.map((c) => [c.id, c]))
   const res = await (deps.transport ?? anthropicTransport)(key, {
     system: REVIEW_SYSTEM,
-    prompt: reviewPrompt(routine, sessions, nameOf, alternatives),
+    prompt: reviewPrompt(program, sessions, nameOf, alternatives),
     schema: aiReviewSchema,
     maxTokens: 8000,
   })
-  return { ...parseAiReview(res.text, routine, altMap), alternatives: altMap }
+  return { ...parseAiReview(res.text, program, altMap), alternatives: altMap }
 }

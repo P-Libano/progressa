@@ -6,7 +6,8 @@ import { Screen } from '../components/ui'
 import { displayName } from '../data/catalog'
 import { MUSCLE_GROUPS, type MuscleGroup } from '../data/curated'
 import { db } from '../db'
-import { fmtKg } from '../domain/progression'
+import { allWeeks } from '../programacao/program'
+import { fmtKg } from '../programacao/progression/common'
 import {
   addWeeks,
   exercisesWithHistory,
@@ -17,7 +18,7 @@ import {
   weekStart,
   weeklySetsByGroup,
 } from '../domain/stats'
-import { useActiveRoutine } from '../lib/routineStore'
+import { useActiveProgram as useActiveRoutine } from '../lib/programStore'
 import { useExerciseMap } from '../lib/useCatalog'
 
 type Tab = 'progresso' | 'sessoes'
@@ -47,8 +48,10 @@ export default function HistoryPage() {
   const volume = useMemo(() => {
     if (!sessions) return []
     const v = weeklySetsByGroup(sessions, week)
-    const inRoutine = new Set<MuscleGroup>(routine?.days.flatMap((d) => d.exercises.map((e) => e.group)) ?? [])
-    return MUSCLE_GROUPS.filter((g) => inRoutine.has(g) || v[g] > 0).map((g) => ({ group: g, sets: v[g] }))
+    const inRoutine = new Set<MuscleGroup>(
+      routine ? allWeeks(routine)[0].days.flatMap((d) => d.groups.flatMap((g) => g.items.map((e) => e.group))) : [],
+    )
+    return MUSCLE_GROUPS.filter((g) => g !== 'condicionamento' && (inRoutine.has(g) || v[g] > 0)).map((g) => ({ group: g, sets: v[g] }))
   }, [sessions, week, routine])
 
   if (!sessions || !byId) return <Screen title="Histórico">Carregando…</Screen>

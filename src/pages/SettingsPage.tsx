@@ -20,7 +20,7 @@ type Msg = { tone: 'ok' | 'error'; text: string } | null
 export default function SettingsPage() {
   const counts = useLiveQuery(async () => ({
     sessions: await db.sessions.where('status').equals('done').count(),
-    routines: await db.routines.count(),
+    routines: await db.programs.count(),
   }))
   const file = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<Msg>(null)
@@ -29,14 +29,21 @@ export default function SettingsPage() {
   const onExport = async () => {
     const data = await exportData()
     downloadJson(data, `progressa-backup-${data.exportedAt.slice(0, 10)}.json`)
-    setMsg({ tone: 'ok', text: `Backup gerado: ${data.sessions.length} sessões, ${data.routines.length} rotinas.` })
+    setMsg({ tone: 'ok', text: `Backup gerado: ${data.sessions.length} sessões, ${data.programs.length} programas.` })
   }
 
   const onImport = async (f: File) => {
     try {
-      const b = parseBackup(await f.text())
+      const equipment = new Map<string, string>()
+      await db.exercises.each((e) => equipment.set(e.id, e.equipment))
+      const b = parseBackup(await f.text(), (id) => equipment.get(id))
       const r = await importData(b)
-      setMsg({ tone: 'ok', text: `Importado: ${r.sessions} sessões e ${r.routines} rotinas (de ${new Date(b.exportedAt).toLocaleString('pt-BR')}).` })
+      setMsg({
+        tone: 'ok',
+        text:
+          `Importado: ${r.sessions} sessões e ${r.programs} programas (de ${new Date(b.exportedAt).toLocaleString('pt-BR')}).` +
+          (b.migratedFrom ? ' Backup antigo convertido para o formato atual.' : ''),
+      })
     } catch (e) {
       setMsg({ tone: 'error', text: e instanceof BackupError ? e.message : 'Não foi possível importar o arquivo.' })
     } finally {

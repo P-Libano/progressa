@@ -4,7 +4,7 @@ import { RestTimer } from '../components/RestTimer'
 import { SessionExerciseCard } from '../components/SessionExerciseCard'
 import { Button, Screen } from '../components/ui'
 import { displayName } from '../data/catalog'
-import { fmtKg } from '../domain/progression'
+import { fmtKg } from '../programacao/progression/common'
 import { sessionSummary } from '../domain/session'
 import { useExerciseMap } from '../lib/useCatalog'
 import {
@@ -59,6 +59,7 @@ export default function SessionPage() {
 
   const done = session.status === 'done'
   const pending = session.exercises.reduce((a, e) => a + e.log.filter((l) => !l.done).length, 0)
+  const groupIndices = [...new Set(session.exercises.map((e) => e.groupIndex))]
 
   if (done) {
     const sum = sessionSummary(session)
@@ -121,31 +122,57 @@ export default function SessionPage() {
       </div>
 
       <div className="space-y-3">
-        {session.exercises.map((item, ex) => (
-          <SessionExerciseCard
-            key={`${item.exerciseId}-${ex}`}
-            index={ex}
-            item={item}
-            exercise={byId.get(item.exerciseId)}
-            open={open === ex}
-            readOnly={false}
-            onToggleOpen={() => setOpen(open === ex ? null : ex)}
-            onWeight={(set, v) => setWeightFrom(id, ex, set, v)}
-            onReps={(set, v) => updateSet(id, ex, set, { reps: v })}
-            onToggleDone={async (set) => {
-              const wasDone = item.log[set].done
-              await toggleSetDone(id, ex, set)
-              // concluiu a última série pendente: avança para o próximo exercício
-              const remaining = item.log.filter((l, i) => i !== set && !l.done).length
-              if (!wasDone && remaining === 0) {
-                const next = session.exercises.findIndex((e, i) => i > ex && e.log.some((l) => !l.done))
-                setOpen(next === -1 ? null : next)
-              }
-            }}
-            onAddSet={() => addSet(id, ex)}
-            onRemoveSet={() => removeLastSet(id, ex)}
-          />
-        ))}
+        {groupIndices.map((gi) => {
+          const members = session.exercises.map((e, ex) => ({ e, ex })).filter(({ e }) => e.groupIndex === gi)
+          const kind = members[0].e.groupKind
+          const letter = String.fromCharCode(65 + gi)
+          const cards = members.map(({ e: item, ex }, k) => (
+            <SessionExerciseCard
+              key={`${item.exerciseId}-${ex}`}
+              index={ex}
+              tag={kind === 'simples' ? undefined : `${letter}${k + 1}`}
+              item={item}
+              exercise={byId.get(item.exerciseId)}
+              open={open === ex}
+              readOnly={false}
+              onToggleOpen={() => setOpen(open === ex ? null : ex)}
+              onWeight={(set, v) => setWeightFrom(id, ex, set, v)}
+              onReps={(set, v) => updateSet(id, ex, set, { reps: v })}
+              onRpe={(set, v) => updateSet(id, ex, set, { rpe: v })}
+              onToggleDone={async (set) => {
+                const wasDone = item.log[set].done
+                await toggleSetDone(id, ex, set)
+                if (wasDone) return
+                // superset/circuito: alterna para o próximo exercício do grupo com série pendente
+                if (kind !== 'simples') {
+                  const order = [...members.slice(k + 1), ...members.slice(0, k + 1)]
+                  const nxt = order.find(({ e, ex: j }) => e.log.some((l, i) => !l.done && !(j === ex && i === set)))
+                  if (nxt) return setOpen(nxt.ex)
+                }
+                // concluiu a última série pendente: avança para o próximo exercício
+                const remaining = item.log.filter((l, i) => i !== set && !l.done).length
+                if (remaining === 0) {
+                  const next = session.exercises.findIndex((e, i) => i > ex && e.log.some((l) => !l.done))
+                  setOpen(next === -1 ? null : next)
+                }
+              }}
+              onAddSet={() => addSet(id, ex)}
+              onRemoveSet={() => removeLastSet(id, ex)}
+            />
+          ))
+          if (kind === 'simples') return <div key={gi}>{cards}</div>
+          const p0 = members[0].e.prescription
+          const head =
+            kind === 'finisher'
+              ? `Finisher · ${members.length} exercícios · ${p0.workSec}s trabalho / ${p0.restSec}s pausa`
+              : `${kind === 'superset' ? 'Superset' : 'Circuito'} · alterne os exercícios; descanse ao fim da volta`
+          return (
+            <div key={gi} className="space-y-2 rounded-2xl border border-accent/25 bg-accent/5 p-2">
+              <p className="px-1 text-xs font-medium text-accent">{head}</p>
+              {cards}
+            </div>
+          )
+        })}
       </div>
 
       <button onClick={() => setConfirm('discard')} className="mt-6 w-full py-3 text-sm text-danger/80 hover:text-danger">

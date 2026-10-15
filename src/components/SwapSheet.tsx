@@ -4,6 +4,7 @@ import { equipmentPt, musclePt } from '../data/i18n'
 import type { Exercise } from '../data/types'
 import type { Profile } from '../domain/profile'
 import { SUBSTITUTE_REASON_PT, suggestSubstitutes } from '../domain/substitutes'
+import { META_BY_ID } from '../programacao/meta'
 import { ExerciseThumb } from './ExerciseMedia'
 import { Chip } from './ui'
 
@@ -12,6 +13,7 @@ export function SwapSheet({
   catalog,
   profile,
   exclude,
+  onlyLowRep = false,
   onPick,
   onClose,
 }: {
@@ -19,12 +21,17 @@ export function SwapSheet({
   catalog: Exercise[]
   profile: Profile
   exclude: ReadonlySet<string>
+  /** Slot com faixa abaixo de 6 reps: só exercícios que aguentam (sem unilaterais/isoladores). */
+  onlyLowRep?: boolean
   onPick: (id: string) => void
   onClose: () => void
 }) {
   const subs = useMemo(
-    () => suggestSubstitutes(current.id, catalog, profile, exclude, 20),
-    [current.id, catalog, profile, exclude],
+    () =>
+      suggestSubstitutes(current.id, catalog, profile, exclude, onlyLowRep ? 60 : 20)
+        .filter((s) => !onlyLowRep || META_BY_ID.get(s.exercise.id)?.adequadoBaixasReps)
+        .slice(0, 20),
+    [current.id, catalog, profile, exclude, onlyLowRep],
   )
 
   useEffect(() => {

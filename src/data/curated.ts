@@ -18,6 +18,7 @@ export const MUSCLE_GROUPS = [
   'abdomen',
   'trapezio',
   'antebracos',
+  'condicionamento',
 ] as const
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number]
 
@@ -34,6 +35,7 @@ export const MUSCLE_GROUP_PT: Record<MuscleGroup, string> = {
   abdomen: 'Abdômen',
   trapezio: 'Trapézio',
   antebracos: 'Antebraços',
+  condicionamento: 'Condicionamento',
 }
 
 /** Grupos de membros inferiores: incremento de carga maior na progressão. */
@@ -68,6 +70,7 @@ export type MovementPattern =
   | 'abdominal'
   | 'encolhimento'
   | 'punho'
+  | 'condicionamento'
 
 export interface CuratedExercise {
   id: string
@@ -241,6 +244,19 @@ const ROWS: Row[] = [
   ['0095', 'Encolhimento com barra', 'trapezio', 'encolhimento', I],
   ['0406', 'Encolhimento com halteres', 'trapezio', 'encolhimento', I],
   ['0126', 'Rosca de punho com barra', 'antebracos', 'punho', I],
+
+  // Condicionamento (finishers e circuitos; trabalho por tempo)
+  ['1160', 'Burpee', 'condicionamento', 'condicionamento', C],
+  ['0630', 'Escalador (mountain climber)', 'condicionamento', 'condicionamento', C],
+  ['3224', 'Polichinelo com salto', 'condicionamento', 'condicionamento', C],
+  ['3361', 'Salto lateral (skater)', 'condicionamento', 'condicionamento', C],
+  ['2612', 'Pular corda', 'condicionamento', 'condicionamento', C],
+  ['0549', 'Swing com kettlebell', 'condicionamento', 'condicionamento', C],
+  ['0550', 'Thruster com kettlebell', 'condicionamento', 'condicionamento', C],
+  ['3305', 'Thruster com barra', 'condicionamento', 'condicionamento', C],
+  ['1201', 'Burpee com halteres', 'condicionamento', 'condicionamento', C],
+  ['2133', 'Caminhada do fazendeiro', 'condicionamento', 'condicionamento', C],
+  ['2138', 'Bicicleta ergométrica', 'condicionamento', 'condicionamento', C],
 ]
 
 export const CURATED: readonly CuratedExercise[] = ROWS.map(([id, pt, group, pattern, compound]) => ({

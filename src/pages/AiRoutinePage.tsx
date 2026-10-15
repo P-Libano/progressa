@@ -3,11 +3,14 @@ import { Link, Navigate, useNavigate } from 'react-router'
 import { AiError, generateRoutineWithAI } from '../ai'
 import { Button, Chip, Icon, Screen } from '../components/ui'
 import { displayName } from '../data/catalog'
-import type { Routine } from '../domain/generator'
 import { EQUIPMENT_ACCESS_PT, GOAL_PT, LEVEL_PT, SPLIT_PT } from '../domain/profile'
 import { useApiKey } from '../lib/apiKey'
-import { activateRoutine, useProfile } from '../lib/routineStore'
+import { activateProgram, useProfile } from '../lib/programStore'
 import { useExerciseMap } from '../lib/useCatalog'
+import type { Program } from '../programacao/types'
+import { prescriptionLabel } from './RoutinePage'
+
+type Routine = Program
 
 type State =
   | { s: 'idle' }
@@ -111,17 +114,21 @@ export default function AiRoutinePage() {
             </ul>
           )}
           <div className="mt-4 space-y-3">
-            {state.routine.days.map((d) => (
+            {state.routine.blocks[0].weeks[0].days.map((d) => (
               <section key={d.key} className="rounded-2xl border border-line bg-surface p-3">
-                <h2 className="font-semibold">{d.name}</h2>
+                <h2 className="font-semibold">
+                  <span className="mr-1.5 font-mono text-sm text-accent">{d.key}</span>
+                  {d.name}
+                </h2>
                 <ol className="mt-2 space-y-1 text-sm">
-                  {d.exercises.map((e, i) => {
+                  {d.groups.flatMap((g) => g.items).map((e, i) => {
                     const ex = byId.get(e.exerciseId)
                     return (
                       <li key={`${e.exerciseId}-${i}`} className="flex justify-between gap-3">
                         <span className="min-w-0 truncate">{ex ? displayName(ex) : e.exerciseId}</span>
                         <span className="shrink-0 tabular-nums text-muted">
-                          {e.sets}×{e.repMin}–{e.repMax}
+                          {prescriptionLabel(e)}
+                          {e.rpe && ` · RPE ${e.rpe.min}–${e.rpe.max}`}
                         </span>
                       </li>
                     )
@@ -130,13 +137,14 @@ export default function AiRoutinePage() {
               </section>
             ))}
           </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted">{state.routine.explanation}</p>
           <div className="mt-5 grid grid-cols-2 gap-2">
             <Button variant="ghost" onClick={run}>
               Gerar outra
             </Button>
             <Button
               onClick={async () => {
-                await activateRoutine(state.routine)
+                await activateProgram(state.routine)
                 navigate('/treino', { replace: true })
               }}
             >

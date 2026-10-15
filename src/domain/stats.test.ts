@@ -6,24 +6,26 @@ import { addWeeks, epley, exercisesWithHistory, loadSeries, sessionsByWeek, week
 const at = (y: number, m: number, d: number, h = 18) => new Date(y, m - 1, d, h).getTime()
 
 function ex(exerciseId: string, group: MuscleGroup, weight: number, reps: (number | null)[]): SessionExercise {
+  const prescription = { exerciseId, role: 'composto' as const, group, sets: reps.length, reps: { min: 8, max: 12 }, restSec: 90 }
   return {
     exerciseId,
+    role: 'composto',
     group,
-    compound: true,
-    sets: reps.length,
-    repMin: 8,
-    repMax: 12,
-    restSec: 90,
+    groupIndex: 0,
+    groupKind: 'simples',
+    prescription,
     suggestion: { kind: 'start', weight: null, failStreak: 0, reason: '' },
-    log: reps.map((r) => ({ weight, reps: r, done: r !== null })),
+    log: reps.map((r) => ({ weight, reps: r, rpe: null, done: r !== null })),
   }
 }
 
 function sess(id: number, startedAt: number, exercises: SessionExercise[], status: Session['status'] = 'done'): Session {
   return {
     id,
-    routineId: 1,
-    dayKey: 'A',
+    programId: 1,
+    weekIndex: 1,
+    weekKind: 'carga',
+    dayKey: 'A1',
     dayName: 'Treino A',
     startedAt,
     finishedAt: startedAt + 3600_000,

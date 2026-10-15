@@ -1,5 +1,5 @@
 import { MUSCLE_GROUPS, type MuscleGroup } from '../data/curated'
-import { totalReps, workingWeight } from './progression'
+import { totalReps, workingWeight } from '../programacao/progression/common'
 import { sessionSummary, toResult, type Session } from './session'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -38,7 +38,8 @@ export function loadSeries(exerciseId: string, sessions: Session[]): LoadPoint[]
   return done(sessions).flatMap((s) =>
     s.exercises
       .filter((e) => e.exerciseId === exerciseId)
-      .map((e) => toResult(e, s.startedAt))
+      .filter((e) => e.role !== 'condicionamento')
+      .map((e) => toResult(e, s.startedAt, s.weekKind))
       .filter((r) => r.sets.length > 0)
       .map((r) => ({
         date: r.date,
@@ -55,7 +56,7 @@ export function exercisesWithHistory(sessions: Session[]): { exerciseId: string;
   const map = new Map<string, { sessions: number; last: number }>()
   for (const s of done(sessions)) {
     for (const e of s.exercises) {
-      if (!e.log.some((l) => l.done)) continue
+      if (e.role === 'condicionamento' || !e.log.some((l) => l.done)) continue
       const cur = map.get(e.exerciseId) ?? { sessions: 0, last: 0 }
       map.set(e.exerciseId, { sessions: cur.sessions + 1, last: Math.max(cur.last, s.startedAt) })
     }

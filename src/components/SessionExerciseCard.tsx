@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { displayName } from '../data/catalog'
 import type { Exercise } from '../data/types'
-import { fmtKg, fmtReps, workingWeight, type SuggestionKind } from '../domain/progression'
 import { parseNumber, type SessionExercise } from '../domain/session'
+import { fmtRest } from '../programacao/explain'
+import { fmtKg, fmtReps, workingWeight } from '../programacao/progression/common'
+import type { SuggestionKind } from '../programacao/types'
 import { ExerciseGif } from './ExerciseMedia'
 import { Icon } from './ui'
 
@@ -14,12 +16,14 @@ function NumberField({
   placeholder,
   label,
   step,
+  disabled,
 }: {
   value: number | null
   onCommit: (v: number | null) => void
   placeholder?: string
   label: string
   step?: 'decimal' | 'numeric'
+  disabled?: boolean
 }) {
   const fmt = (v: number | null) => (v === null ? '' : String(v).replace('.', ','))
   const [text, setText] = useState(fmt(value))
@@ -32,6 +36,7 @@ function NumberField({
       aria-label={label}
       inputMode={step ?? 'decimal'}
       value={text}
+      disabled={disabled}
       placeholder={placeholder}
       onFocus={(e) => {
         setFocused(true)
@@ -45,20 +50,50 @@ function NumberField({
         setText(fmt(v))
       }}
       onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-      className="h-11 w-full rounded-lg border border-line bg-bg text-center text-lg font-semibold tabular-nums outline-none placeholder:font-normal placeholder:text-muted/60 focus:border-accent"
+      className="h-11 w-full min-w-0 rounded-lg border border-line bg-bg text-center text-base font-semibold tabular-nums outline-none placeholder:text-xs placeholder:font-normal placeholder:text-muted/60 focus:border-accent disabled:opacity-40"
     />
   )
 }
 
-const BANNER: Record<SuggestionKind, { cls: string; icon: string; title: (w: number | null) => string }> = {
-  increase: { cls: 'border-accent/40 bg-accent/10 text-accent', icon: '↑', title: (w) => `Suba para ${fmtKg(w!)}` },
-  deload: { cls: 'border-warn/40 bg-warn/10 text-warn', icon: '↓', title: (w) => `Deload: ${fmtKg(w!)}` },
-  keep: { cls: 'border-line bg-surface-2 text-ink', icon: '=', title: (w) => `Mantenha ${fmtKg(w!)}` },
-  start: { cls: 'border-line bg-surface-2 text-muted', icon: '•', title: () => 'Primeira vez' },
+const BANNER: Record<SuggestionKind, { cls: string; icon: string }> = {
+  increase: { cls: 'border-accent/40 bg-accent/10 text-accent', icon: '↑' },
+  less_rest: { cls: 'border-accent/40 bg-accent/10 text-accent', icon: '⏱' },
+  add_set: { cls: 'border-accent/40 bg-accent/10 text-accent', icon: '+' },
+  more_reps: { cls: 'border-accent/40 bg-accent/10 text-accent', icon: '↑' },
+  decrease: { cls: 'border-warn/40 bg-warn/10 text-warn', icon: '↓' },
+  deload: { cls: 'border-warn/40 bg-warn/10 text-warn', icon: '↓' },
+  keep: { cls: 'border-line bg-surface-2 text-ink', icon: '=' },
+  start: { cls: 'border-line bg-surface-2 text-muted', icon: '•' },
 }
+
+function bannerTitle(item: SessionExercise, bodyweight: boolean): string {
+  const s = item.suggestion
+  const w = s.weight !== null && !bodyweight ? fmtKg(s.weight) : null
+  switch (s.kind) {
+    case 'increase':
+      return w ? `Suba para ${w}` : 'Hora de dificultar'
+    case 'decrease':
+      return w ? `Reduza para ${w}` : 'Alivie a variação'
+    case 'deload':
+      return w ? `Deload: ${w}` : 'Semana leve'
+    case 'less_rest':
+      return `Menos descanso: ${s.restSec}s`
+    case 'add_set':
+      return `Mais uma série: ${s.sets}`
+    case 'more_reps':
+      return `Busque ${s.reps?.min} reps${w ? ` com ${w}` : ''}`
+    case 'keep':
+      return w ? `Mantenha ${w}` : 'Mantenha e busque mais reps'
+    case 'start':
+      return 'Primeira vez'
+  }
+}
+
+const range = (r?: { min: number; max: number }) => (!r ? '' : r.min === r.max ? `${r.min}` : `${r.min}–${r.max}`)
 
 export function SessionExerciseCard({
   index,
+  tag,
   item,
   exercise,
   open,
@@ -66,11 +101,14 @@ export function SessionExerciseCard({
   onToggleOpen,
   onWeight,
   onReps,
+  onRpe,
   onToggleDone,
   onAddSet,
   onRemoveSet,
 }: {
   index: number
+  /** Ex.: "A1" em superset/circuito. */
+  tag?: string
   item: SessionExercise
   exercise: Exercise | undefined
   open: boolean
@@ -78,17 +116,22 @@ export function SessionExerciseCard({
   onToggleOpen: () => void
   onWeight: (set: number, v: number | null) => void
   onReps: (set: number, v: number | null) => void
+  onRpe: (set: number, v: number | null) => void
   onToggleDone: (set: number) => void
   onAddSet: () => void
   onRemoveSet: () => void
 }) {
+  const p = item.prescription
+  const timed = !!p.workSec
   const doneCount = item.log.filter((l) => l.done).length
-  const complete = doneCount >= item.sets
+  const complete = doneCount >= p.sets
   const name = exercise ? displayName(exercise) : item.exerciseId
   const s = item.suggestion
   const bodyweight = item.previous ? workingWeight(item.previous) === 0 : exercise?.equipment === 'body weight'
   const banner = BANNER[s.kind]
-  const bannerTitle = bodyweight && s.kind !== 'start' ? { increase: 'Hora de dificultar', deload: 'Alivie a variação', keep: 'Mantenha e busque mais reps' }[s.kind] : banner.title(s.weight)
+  const target = timed ? `${p.sets}×${p.workSec}s` : `${p.sets}×${range(p.reps)}`
+  const intensity = [p.pct1rm && `${range(p.pct1rm)}% 1RM`, p.rpe && `RPE ${range(p.rpe)}`].filter(Boolean).join(' · ')
+  const cols = timed ? 'grid-cols-[2rem_1fr_2.75rem]' : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_2.75rem]'
 
   return (
     <section className={`rounded-2xl border ${complete ? 'border-accent/30' : 'border-line'} bg-surface`}>
@@ -98,15 +141,15 @@ export function SessionExerciseCard({
             complete ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted'
           }`}
         >
-          {complete ? <Icon name="check" className="size-4" /> : index + 1}
+          {complete ? <Icon name="check" className="size-4" /> : (tag ?? index + 1)}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{name}</span>
           <span className="text-sm text-muted">
-            {item.sets}×{item.repMin}–{item.repMax} · {doneCount}/{item.log.length} séries
+            {target} · {doneCount}/{item.log.length} {timed ? 'voltas' : 'séries'}
           </span>
         </span>
-        {!open && s.weight !== null && !bodyweight && (
+        {!open && s.weight !== null && s.weight > 0 && (
           <span className={`rounded-lg border px-2 py-1 text-xs ${banner.cls}`}>
             {banner.icon} {fmtKg(s.weight)}
           </span>
@@ -124,65 +167,76 @@ export function SessionExerciseCard({
             <div className="min-w-0 flex-1 space-y-2">
               <div className={`rounded-xl border p-2.5 ${banner.cls}`}>
                 <p className="font-semibold">
-                  {banner.icon} {bannerTitle}
+                  {banner.icon} {bannerTitle(item, bodyweight)}
                 </p>
                 <p className="mt-0.5 text-xs leading-snug opacity-90">{s.reason}</p>
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted">Histórico</p>
-                {item.recent?.length ? (
-                  <ul className="mt-1 space-y-0.5 text-xs tabular-nums">
-                    {[...item.recent].reverse().map((r) => (
-                      <li key={r.date} className="flex justify-between gap-2">
-                        <span className="text-muted">{new Date(r.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
-                        <span>
-                          {bodyweight ? '' : `${fmtKg(workingWeight(r))} × `}
-                          {fmtReps(r)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-xs text-muted">Sem registros ainda.</p>
-                )}
-              </div>
+              <p className="text-xs text-muted">
+                Alvo: {target}
+                {intensity && ` · ${intensity}`} · {timed ? `pausa ${p.restSec}s` : `descanso ${fmtRest(p.restSec)}`}
+              </p>
+              {!timed && (
+                <div>
+                  <p className="text-xs font-medium text-muted">Histórico</p>
+                  {item.recent?.length ? (
+                    <ul className="mt-1 space-y-0.5 text-xs tabular-nums">
+                      {[...item.recent].reverse().map((r) => (
+                        <li key={r.date} className="flex justify-between gap-2">
+                          <span className="text-muted">{new Date(r.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                          <span>
+                            {bodyweight ? '' : `${fmtKg(workingWeight(r))} × `}
+                            {fmtReps(r)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted">Sem registros ainda.</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-[2rem_1fr_1fr_1fr_2.75rem] items-center gap-2 text-center text-xs text-muted">
-            <span>Série</span>
-            <span>Anterior</span>
-            <span>kg</span>
-            <span>Reps</span>
+          <div className={`mt-3 grid ${cols} items-center gap-1.5 text-center text-[11px] text-muted`}>
+            <span>#</span>
+            {timed ? (
+              <span>Trabalho</span>
+            ) : (
+              <>
+                <span>Anterior</span>
+                <span>kg</span>
+                <span>Reps</span>
+                <span>RPE</span>
+              </>
+            )}
             <span />
           </div>
           <ol className="mt-1 space-y-1.5">
             {item.log.map((l, i) => {
               const prev = item.previous?.sets[i]
               return (
-                <li
-                  key={i}
-                  className={`grid grid-cols-[2rem_1fr_1fr_1fr_2.75rem] items-center gap-2 rounded-xl px-0.5 py-0.5 ${
-                    l.done ? 'bg-accent/10' : ''
-                  }`}
-                >
+                <li key={i} className={`grid ${cols} items-center gap-1.5 rounded-xl px-0.5 py-0.5 ${l.done ? 'bg-accent/10' : ''}`}>
                   <span className="text-center font-semibold text-muted">{i + 1}</span>
-                  <span className="text-center text-sm text-muted tabular-nums">
-                    {prev ? `${bodyweight ? '' : `${String(prev.weight).replace('.', ',')}×`}${prev.reps}` : '—'}
-                  </span>
-                  <NumberField
-                    label={`Carga série ${i + 1}`}
-                    value={l.weight}
-                    placeholder={bodyweight ? 'PC' : 'kg'}
-                    onCommit={(v) => onWeight(i, v)}
-                  />
-                  <NumberField
-                    label={`Reps série ${i + 1}`}
-                    value={l.reps}
-                    step="numeric"
-                    placeholder={`${item.repMin}–${item.repMax}`}
-                    onCommit={(v) => onReps(i, v)}
-                  />
+                  {timed ? (
+                    <span className="text-center text-sm">
+                      {p.workSec}s trabalho · {p.restSec}s pausa
+                    </span>
+                  ) : (
+                    <>
+                      <span className="truncate text-center text-xs text-muted tabular-nums">
+                        {prev ? `${bodyweight ? '' : `${String(prev.weight).replace('.', ',')}×`}${prev.reps}` : '—'}
+                      </span>
+                      <NumberField label={`Carga série ${i + 1}`} value={l.weight} placeholder={bodyweight ? 'PC' : 'kg'} onCommit={(v) => onWeight(i, v)} />
+                      <NumberField label={`Reps série ${i + 1}`} value={l.reps} step="numeric" placeholder={range(p.reps)} onCommit={(v) => onReps(i, v)} />
+                      <NumberField
+                        label={`RPE série ${i + 1}`}
+                        value={l.rpe}
+                        placeholder="RPE"
+                        onCommit={(v) => onRpe(i, v === null ? null : Math.min(10, Math.max(1, Math.round(v * 2) / 2)))}
+                      />
+                    </>
+                  )}
                   <button
                     disabled={readOnly}
                     onClick={() => onToggleDone(i)}
@@ -198,13 +252,14 @@ export function SessionExerciseCard({
               )
             })}
           </ol>
+          {!timed && <p className="mt-1.5 text-[11px] text-muted">RPE é opcional (1–10; 10 = falha). Ajuda a progressão por carga.</p>}
           {!readOnly && (
             <div className="mt-2 flex justify-end gap-2 text-sm">
               <button onClick={onRemoveSet} className="rounded-lg px-3 py-1.5 text-muted hover:bg-surface-2">
-                − série
+                − {timed ? 'volta' : 'série'}
               </button>
               <button onClick={onAddSet} className="rounded-lg px-3 py-1.5 text-accent hover:bg-surface-2">
-                + série
+                + {timed ? 'volta' : 'série'}
               </button>
             </div>
           )}

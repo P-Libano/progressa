@@ -15,7 +15,9 @@ import {
   type Profile,
   type Split,
 } from '../domain/profile'
-import { saveProfileAndGenerate, useProfile } from '../lib/routineStore'
+import { saveProfileAndGenerate, useProfile } from '../lib/programStore'
+import { GOALS, recommendedSplitFor } from '../programacao/goals'
+import { GOAL_IDS } from '../programacao/types'
 
 const DEFAULT: Profile = { goal: 'hipertrofia', daysPerWeek: 3, split: 'ABC', equipment: 'academia', level: 'iniciante' }
 
@@ -24,10 +26,7 @@ const LEVEL_HINT: Record<Level, string> = {
   intermediario: '6 meses a 2 anos',
   avancado: 'Mais de 2 anos, técnica sólida',
 }
-const GOAL_HINT: Record<Goal, string> = {
-  hipertrofia: 'Ganhar massa muscular · mais repetições',
-  forca: 'Levantar mais carga · menos repetições, mais descanso',
-}
+const GOAL_HINT = Object.fromEntries(GOAL_IDS.map((g) => [g, GOALS[g].resumo])) as Record<Goal, string>
 
 function Section({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
@@ -88,9 +87,13 @@ export default function Onboarding() {
 
   const set = (patch: Partial<Profile>) => setP((prev) => ({ ...prev, ...patch }))
   const setDays = (daysPerWeek: number) =>
-    set(splitTouched ? { daysPerWeek } : { daysPerWeek, split: recommendedSplit(daysPerWeek) })
+    set(splitTouched ? { daysPerWeek } : { daysPerWeek, split: recommendedSplitFor(p.goal, daysPerWeek, recommendedSplit) })
   const bar = p.pullupBar ?? DEFAULT_PULLUP_BAR[p.equipment]
-  const recommended = recommendedSplit(p.daysPerWeek)
+  const recommended = recommendedSplitFor(p.goal, p.daysPerWeek, recommendedSplit)
+  // objetivo que impõe a divisão nesta frequência (ex.: gasto energético 2–3x → full body em circuito)
+  const forced = GOALS[p.goal].dayStructureRules?.find(
+    (r) => r.split && r.when.daysPerWeek && p.daysPerWeek >= r.when.daysPerWeek.min && p.daysPerWeek <= r.when.daysPerWeek.max,
+  )?.split
 
   const submit = async () => {
     setBusy(true)
@@ -113,7 +116,13 @@ export default function Onboarding() {
       <Section n={1} title="Objetivo">
         <div className="grid gap-2">
           {(Object.keys(GOAL_PT) as Goal[]).map((g) => (
-            <Option key={g} selected={p.goal === g} onClick={() => set({ goal: g })} title={GOAL_PT[g]} hint={GOAL_HINT[g]} />
+            <Option
+              key={g}
+              selected={p.goal === g}
+              onClick={() => set(splitTouched ? { goal: g } : { goal: g, split: recommendedSplitFor(g, p.daysPerWeek, recommendedSplit) })}
+              title={GOAL_PT[g]}
+              hint={GOAL_HINT[g]}
+            />
           ))}
         </div>
       </Section>
@@ -152,6 +161,12 @@ export default function Onboarding() {
             />
           ))}
         </div>
+        {forced && forced !== p.split && (
+          <p className="mt-2 rounded-lg bg-warn/10 px-3 py-2 text-xs text-warn">
+            Com {p.daysPerWeek} dias, {GOALS[p.goal].nome.toLowerCase()} usa {SPLIT_PT[forced].toLowerCase()} em circuito, independentemente da
+            divisão escolhida.
+          </p>
+        )}
       </Section>
 
       <Section n={4} title="Equipamento disponível">
