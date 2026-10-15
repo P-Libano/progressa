@@ -117,7 +117,7 @@ export default function AiRoutinePage() {
             {state.routine.blocks[0].weeks[0].days.map((d) => (
               <section key={d.key} className="rounded-2xl border border-line bg-surface p-3">
                 <h2 className="font-semibold">
-                  <span className="mr-1.5 font-mono text-sm text-accent">{d.key}</span>
+                  <span className="display mr-1.5 text-sm font-semibold text-accent">{d.key}</span>
                   {d.name}
                 </h2>
                 <ol className="mt-2 space-y-1 text-sm">

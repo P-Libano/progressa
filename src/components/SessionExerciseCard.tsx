@@ -51,7 +51,7 @@ function NumberField({
         setText(fmt(v))
       }}
       onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-      className="h-11 w-full min-w-0 rounded-lg border border-line bg-bg text-center text-base font-semibold tabular-nums outline-none placeholder:text-xs placeholder:font-normal placeholder:text-muted/60 focus:border-accent disabled:opacity-40"
+      className="display h-11 w-full min-w-0 rounded-lg border border-line bg-bg text-center text-base font-semibold outline-none placeholder:text-xs placeholder:font-normal placeholder:text-muted/60 focus:border-accent disabled:opacity-40"
     />
   )
 }
@@ -194,7 +194,7 @@ export function SessionExerciseCard({
             )}
             <div className="min-w-0 flex-1 space-y-2">
               <div className={`rounded-xl border p-2.5 ${banner.cls}`}>
-                <p className="font-semibold">
+                <p className="display font-semibold">
                   {banner.icon} {bannerTitle(item, bodyweight)}
                 </p>
                 <p className="mt-0.5 text-xs leading-snug opacity-90">{s.reason}</p>

@@ -1,27 +1,95 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:where(.dark, .dark *));
+/*
+ * Ferro & Latão — identidade do Progressa (brand book: docs/marca.md).
+ * Escuro é o tema principal (academia, tela OLED); o claro ("Giz") segue o sistema ou a escolha em Ajustes.
+ * Todas as cores vêm destes tokens; nenhum componente usa cor literal.
+ */
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  src: url('./assets/fonts/archivo-latin-wdth-wght.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./assets/fonts/hanken-grotesk-latin-wght.woff2') format('woff2-variations');
+}
 
 @theme {
-  --color-bg: #0b0d10;
-  --color-surface: #14171c;
-  --color-surface-2: #1c2027;
-  --color-line: #262b33;
-  --color-ink: #e8eaed;
-  --color-muted: #8b929c;
-  --color-accent: #a3e635;
-  --color-accent-ink: #10140a;
-  /* marcas de gráfico: lime-600, validado (L 0,48–0,67, contraste ≥ 3:1 sobre surface) */
-  --color-chart: #65a30d;
-  --color-warn: #fbbf24;
-  --color-danger: #f87171;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Ferro (escuro) */
+  --color-bg: #0d0f12;
+  --color-surface: #15181d;
+  --color-surface-2: #1d2128;
+  --color-line: #2a2f37;
+  --color-ink: #eceae6;
+  --color-muted: #959ca6;
+  --color-accent: #d6a54e;
+  --color-accent-ink: #17120a;
+  --color-chart: #c8963f;
+  --color-warn: #86aedd;
+  --color-danger: #ee6f62;
+  --color-focus: #e9c37a;
+
+  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Archivo', 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+
+  /* cantos usinados: menores que o padrão do Tailwind */
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
+}
+
+/* Giz (claro) */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --color-bg: #f3f4f5;
+    --color-surface: #ffffff;
+    --color-surface-2: #e9ecef;
+    --color-line: #d5dae0;
+    --color-ink: #15181c;
+    --color-muted: #5b636d;
+    --color-accent: #8a6318;
+    --color-accent-ink: #ffffff;
+    --color-chart: #a7782a;
+    --color-warn: #2d69ae;
+    --color-danger: #bf3a2e;
+    --color-focus: #6e4e10;
+    color-scheme: light;
+  }
+}
+:root[data-theme='light'] {
+  --color-bg: #f3f4f5;
+  --color-surface: #ffffff;
+  --color-surface-2: #e9ecef;
+  --color-line: #d5dae0;
+  --color-ink: #15181c;
+  --color-muted: #5b636d;
+  --color-accent: #8a6318;
+  --color-accent-ink: #ffffff;
+  --color-chart: #a7782a;
+  --color-warn: #2d69ae;
+  --color-danger: #bf3a2e;
+  --color-focus: #6e4e10;
+  color-scheme: light;
+}
+
+:root {
+  color-scheme: dark;
 }
 
 html,
 body {
   background: var(--color-bg);
   color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: contain;
 }
@@ -30,7 +98,29 @@ body {
   min-height: 100dvh;
 }
 
-/* GIFs do dataset são 180x180: não ampliar além do dobro para não borrar. */
+/* Títulos e números: Archivo semi-expandida, algarismos tabulares. */
+@utility display {
+  font-family: var(--font-display);
+  font-stretch: 112.5%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Rótulos curtos em caixa alta (ex.: "SÉRIE", "VOLUME"). */
+@utility eyebrow {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* GIFs do dataset são 180x180 com fundo branco: não ampliar além do dobro para não borrar. */
 .gif-frame {
   image-rendering: auto;
   background: #fff;

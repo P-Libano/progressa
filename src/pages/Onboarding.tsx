@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
+import { BrandLockup } from '../components/Brand'
 import { Button, Screen } from '../components/ui'
 import {
   DEFAULT_PULLUP_BAR,
@@ -107,6 +108,7 @@ export default function Onboarding() {
 
   return (
     <Screen title={saved ? 'Refazer rotina' : 'Vamos montar seu treino'} back={!!saved}>
+      {!saved && <BrandLockup className="mb-4 h-8" />}
       {!saved && (
         <p className="mb-6 text-sm text-muted">
           Cinco perguntas e o Progressa monta sua rotina. Dá para ajustar tudo depois.
@@ -135,7 +137,7 @@ export default function Onboarding() {
               type="button"
               onClick={() => setDays(d)}
               aria-pressed={p.daysPerWeek === d}
-              className={`h-12 rounded-xl border text-lg font-semibold ${
+              className={`display h-12 rounded-xl border text-lg font-semibold ${
                 p.daysPerWeek === d ? 'border-accent bg-accent/10 text-accent' : 'border-line bg-surface'
               }`}
             >

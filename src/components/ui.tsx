@@ -25,7 +25,7 @@ export function Screen({
             <Icon name="back" />
           </button>
         )}
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold">{title}</h1>
+        <h1 className="display min-w-0 flex-1 truncate text-lg font-bold">{title}</h1>
         {action}
       </header>
       <div className="px-4 pt-4">{children}</div>
@@ -64,7 +64,7 @@ export function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 font-medium transition disabled:opacity-40 ${v} ${className}`}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 font-semibold transition disabled:opacity-40 ${v} ${className}`}
     >
       {children}
     </button>

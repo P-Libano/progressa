@@ -6,13 +6,17 @@ seus dados ficam no aparelho.
 
 **App:** https://p-libano.github.io/progressa/
 
-| Objetivo e perfil | Programa | Sessão | Exercício |
+| Objetivo e perfil | Programa | Sessão | Histórico |
 |---|---|---|---|
-| ![Onboarding](docs/screenshots/onboarding.png) | ![Programa](docs/screenshots/programa.png) | ![Sessão](docs/screenshots/sessao.png) | ![Exercício](docs/screenshots/exercicio.png) |
+| ![Onboarding](docs/screenshots/onboarding.png) | ![Programa](docs/screenshots/programa.png) | ![Sessão](docs/screenshots/sessao.png) | ![Histórico](docs/screenshots/historico.png) |
 
-| Superset e finisher | Histórico | Revisão com IA |
-|---|---|---|
-| ![Superset](docs/screenshots/sessao-superset.png) | ![Histórico](docs/screenshots/historico-progresso.png) | ![IA](docs/screenshots/ia-revisao.png) |
+Tema claro (Giz), escolhido pelo sistema ou em Ajustes → Aparência:
+
+| Sessão | Histórico |
+|---|---|
+| ![Sessão no tema claro](docs/screenshots/sessao-claro.png) | ![Histórico no tema claro](docs/screenshots/historico-claro.png) |
+
+Identidade visual "Ferro & Latão": [`docs/marca.md`](docs/marca.md).
 
 ## O que faz
 
@@ -98,6 +102,7 @@ PROGRESSA_LIVE_KEY=sk-ant-... npx vitest run src/ai/ai.live.test.ts
 - Imagens e GIFs: **© Gym visual — https://gymvisual.com/**, redistribuídos pelo dataset com permissão e
   carregados direto do CDN. O uso dessa mídia segue os termos da Gym visual; para publicar ou vender um
   derivado, confira a licença com eles.
+- Fontes: [Archivo](https://github.com/Omnibus-Type/Archivo) e [Hanken Grotesk](https://github.com/marcologous/hanken-grotesk), licença SIL Open Font License 1.1, empacotadas no app.
 - O app não substitui orientação profissional.
 
 ## Estrutura

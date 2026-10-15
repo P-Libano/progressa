@@ -64,7 +64,7 @@ export default function RoutinePage() {
           <ExerciseThumb exercise={ex} size={52} />
           <span className="min-w-0">
             <span className="block truncate font-medium">
-              {tag && <span className="mr-1 font-mono text-xs text-accent">{tag}</span>}
+              {tag && <span className="display mr-1 text-xs font-semibold text-accent">{tag}</span>}
               {displayName(ex)}
             </span>
             <span className="text-sm text-muted">
@@ -212,7 +212,7 @@ export default function RoutinePage() {
       </div>
 
       <div className="mt-4 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold">{day.name}</h2>
+        <h2 className="display text-lg font-bold">{day.name}</h2>
         {day.key === nextDay && <span className="text-xs text-accent">Próximo treino</span>}
       </div>
 

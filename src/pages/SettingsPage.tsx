@@ -6,6 +6,7 @@ import { Button, Screen } from '../components/ui'
 import { MEDIA_ATTRIBUTION } from '../data/catalog'
 import { db } from '../db'
 import { BackupError, downloadJson, exportData, importData, parseBackup, wipeUserData } from '../lib/backup'
+import { getTheme, setTheme, type ThemeChoice } from '../lib/theme'
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -26,6 +27,7 @@ export default function SettingsPage() {
   const file = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<Msg>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
+  const [theme, setThemeState] = useState<ThemeChoice>(getTheme)
 
   const onExport = async () => {
     const data = await exportData()
@@ -60,7 +62,7 @@ export default function SettingsPage() {
         </p>
         {counts && (
           <p className="mt-2 text-sm">
-            {counts.sessions} treinos concluídos · {counts.routines} rotinas
+            {counts.sessions} {counts.sessions === 1 ? 'treino concluído' : 'treinos concluídos'} · {counts.routines} {counts.routines === 1 ? 'rotina' : 'rotinas'}
           </p>
         )}
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -106,6 +108,31 @@ export default function SettingsPage() {
               Apagar todos os dados…
             </button>
           )}
+        </div>
+      </Card>
+
+      <Card title="Aparência">
+        <div className="flex rounded-xl border border-line bg-bg p-0.5 text-sm" role="radiogroup" aria-label="Tema">
+          {(
+            [
+              ['sistema', 'Do sistema'],
+              ['escuro', 'Ferro (escuro)'],
+              ['claro', 'Giz (claro)'],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              role="radio"
+              aria-checked={theme === k}
+              onClick={() => {
+                setTheme(k)
+                setThemeState(k)
+              }}
+              className={`flex-1 rounded-lg py-2 ${theme === k ? 'bg-surface-2 font-semibold text-ink' : 'text-muted'}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </Card>
 

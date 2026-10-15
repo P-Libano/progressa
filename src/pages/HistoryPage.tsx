@@ -28,7 +28,7 @@ function StatTile({ label, value, sub }: { label: string; value: string; sub?: s
   return (
     <div className="rounded-xl border border-line bg-surface p-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold">{value}</p>
+      <p className="display mt-0.5 text-lg font-semibold">{value}</p>
       {sub && <p className="text-[11px] text-muted">{sub}</p>}
     </div>
   )

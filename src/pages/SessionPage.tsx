@@ -29,7 +29,7 @@ function Elapsed({ since }: { since: number }) {
     return () => clearInterval(t)
   }, [])
   const m = Math.floor((now - since) / 60000)
-  return <span className="font-mono tabular-nums text-muted">{m} min</span>
+  return <span className="display text-muted">{m} min</span>
 }
 
 export default function SessionPage() {
@@ -86,7 +86,7 @@ export default function SessionPage() {
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-[11px] text-muted">{k}</dt>
-                <dd className="font-semibold">{v}</dd>
+                <dd className="display font-semibold">{v}</dd>
               </div>
             ))}
           </dl>

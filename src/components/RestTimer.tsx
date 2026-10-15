@@ -69,7 +69,7 @@ export function RestTimer({
         <div className="flex items-center gap-2 px-4 py-2.5">
           <div className="flex-1">
             <p className={`text-xs ${done ? '' : 'text-muted'}`}>{done ? 'Descanso encerrado' : 'Descanso'}</p>
-            <p className="font-mono text-2xl font-bold tabular-nums">{done ? 'Bora!' : mmss(left)}</p>
+            <p className="display text-2xl font-bold">{done ? 'Bora!' : mmss(left)}</p>
           </div>
           {!done && (
             <>

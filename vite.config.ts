@@ -26,8 +26,8 @@ export default defineConfig(({ command, isPreview }) => ({
         scope: '.',
         display: 'standalone',
         orientation: 'portrait',
-        theme_color: '#0b0d10',
-        background_color: '#0b0d10',
+        theme_color: '#0d0f12',
+        background_color: '#0d0f12',
         categories: ['health', 'fitness', 'sports'],
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
@@ -36,7 +36,7 @@ export default defineConfig(({ command, isPreview }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [

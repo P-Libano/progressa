@@ -1,5 +1,6 @@
 import { Suspense, lazy, type ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router'
+import { BrandLockup } from './components/Brand'
 import { Button, Icon, Screen } from './components/ui'
 import { useCatalogBootstrap } from './lib/useCatalog'
 import Catalog from './pages/Catalog'
@@ -55,9 +56,7 @@ export default function App() {
     return (
       <div className="grid min-h-dvh place-items-center px-6 text-center">
         <div>
-          <p className="text-3xl font-bold tracking-tight">
-            progress<span className="text-accent">a</span>
-          </p>
+          <BrandLockup className="h-10" />
           {status.state === 'loading' ? (
             <p className="mt-3 text-sm text-muted">Preparando a base de exercícios…</p>
           ) : (
