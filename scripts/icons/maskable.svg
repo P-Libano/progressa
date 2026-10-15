@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- maskable: fundo sangrado e desenho dentro da zona segura (círculo de 80%) -->
+  <rect width="512" height="512" fill="#0b0d10"/>
+  <path d="M150 340 L222 257 L278 302 L362 190" fill="none" stroke="#a3e635" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="362" cy="190" r="29" fill="#a3e635"/>
+</svg>
