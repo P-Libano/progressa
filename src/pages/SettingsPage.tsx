@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import { ApiKeyCard } from '../components/ApiKeyCard'
 import { Button, Screen } from '../components/ui'
 import { MEDIA_ATTRIBUTION } from '../data/catalog'
@@ -106,6 +107,13 @@ export default function SettingsPage() {
             </button>
           )}
         </div>
+      </Card>
+
+      <Card title="Guia">
+        <Link to="/guia" className="flex items-center justify-between text-sm">
+          <span>Entenda 1RM, RPE, as contas de carga e o volume</span>
+          <span className="text-muted">→</span>
+        </Link>
       </Card>
 
       <ApiKeyCard />

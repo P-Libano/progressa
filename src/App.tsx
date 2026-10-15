@@ -4,6 +4,7 @@ import { Button, Icon, Screen } from './components/ui'
 import { useCatalogBootstrap } from './lib/useCatalog'
 import Catalog from './pages/Catalog'
 import ExerciseDetail from './pages/ExerciseDetail'
+import GuidePage from './pages/GuidePage'
 import Onboarding from './pages/Onboarding'
 import RoutinePage from './pages/RoutinePage'
 import SessionPage from './pages/SessionPage'
@@ -114,6 +115,7 @@ export default function App() {
             </Lazy>
           }
         />
+        <Route path="/guia" element={<GuidePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />

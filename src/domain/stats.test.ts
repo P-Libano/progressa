@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { MuscleGroup } from '../data/curated'
 import type { Session, SessionExercise } from './session'
-import { addWeeks, epley, exercisesWithHistory, loadSeries, sessionsByWeek, weekStart, weeklySetsByGroup } from './stats'
+import { addWeeks, epley, exercisesWithHistory, loadSeries, previousSameDay, sessionsByWeek, weekStart, weeklySetsByGroup, weeklyTonnage } from './stats'
 
 const at = (y: number, m: number, d: number, h = 18) => new Date(y, m - 1, d, h).getTime()
 
@@ -81,5 +81,20 @@ describe('stats', () => {
     const g = sessionsByWeek(sessions)
     expect(g.map((x) => x.sessions.map((s) => s.id))).toEqual([[3], [2, 1]])
     expect(g[1].sessions[1].summary).toMatchObject({ sets: 6, volumeKg: 60 * 36 + 80 * 29 })
+  })
+
+  it('volume levantado por semana, com semanas vazias', () => {
+    const t = weeklyTonnage(sessions, 3, at(2026, 10, 20))
+    console.log('tonelagem:', JSON.stringify(t.map((p) => [new Date(p.week).getDate(), p.kg, p.sessions])))
+    expect(t.map((p) => [new Date(p.week).getDate(), p.kg, p.sessions])).toEqual([
+      [5, 0, 0],
+      [12, 60 * 36 + 80 * 29 + 62.5 * 19 + 50 * 36, 2],
+      [19, 62.5 * 33, 1], // sessão em andamento não conta
+    ])
+  })
+
+  it('sessão anterior do mesmo dia para comparar', () => {
+    expect(previousSameDay(sessions[2], sessions)?.id).toBe(2)
+    expect(previousSameDay(sessions[0], sessions)).toBeUndefined()
   })
 })

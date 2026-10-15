@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { LoadChart, WeeklyVolumeChart } from '../components/charts'
+import { LoadChart, TonnageChart, WeeklyVolumeChart, fmtTon } from '../components/charts'
 import { Screen } from '../components/ui'
 import { displayName } from '../data/catalog'
 import { MUSCLE_GROUPS, type MuscleGroup } from '../data/curated'
@@ -17,6 +17,7 @@ import {
   sessionsByWeek,
   weekStart,
   weeklySetsByGroup,
+  weeklyTonnage,
 } from '../domain/stats'
 import { useActiveProgram as useActiveRoutine } from '../lib/programStore'
 import { useExerciseMap } from '../lib/useCatalog'
@@ -45,6 +46,7 @@ export default function HistoryPage() {
   const exerciseId = picked ?? withHistory[0]?.exerciseId
   const series = useMemo(() => (sessions && exerciseId ? loadSeries(exerciseId, sessions) : []), [sessions, exerciseId])
   const weeks = useMemo(() => (sessions ? sessionsByWeek(sessions) : []), [sessions])
+  const tonnage = useMemo(() => (sessions ? weeklyTonnage(sessions, 8) : []), [sessions])
   const volume = useMemo(() => {
     if (!sessions) return []
     const v = weeklySetsByGroup(sessions, week)
@@ -104,7 +106,37 @@ export default function HistoryPage() {
 
       {tab === 'progresso' ? (
         <>
-          <section className="mt-6">
+          {(() => {
+            const cur = tonnage[tonnage.length - 1]
+            const prev = tonnage[tonnage.length - 2]
+            const delta = prev && prev.kg > 0 ? Math.round(((cur.kg - prev.kg) / prev.kg) * 100) : null
+            const best = Math.max(...tonnage.map((p) => p.kg))
+            return (
+              <section className="mt-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold">Volume levantado</h2>
+                  <Link to="/guia" className="text-xs text-muted underline underline-offset-2">
+                    o que é?
+                  </Link>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <StatTile label="Esta semana" value={fmtTon(cur.kg)} sub={`${cur.sessions} ${cur.sessions === 1 ? 'treino' : 'treinos'}`} />
+                  <StatTile
+                    label="vs semana passada"
+                    value={delta === null ? '—' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta)}%`}
+                    sub={prev ? fmtTon(prev.kg) : undefined}
+                  />
+                  <StatTile label="Melhor semana" value={fmtTon(best)} sub="últimas 8" />
+                </div>
+                <div className="mt-3 rounded-2xl border border-line bg-surface p-3">
+                  <TonnageChart points={tonnage} />
+                </div>
+                <p className="mt-2 text-xs text-muted">Soma de peso × reps das séries concluídas. Peso corporal conta como 0 kg.</p>
+              </section>
+            )
+          })()}
+
+          <section className="mt-8">
             <h2 className="font-semibold">Carga por exercício</h2>
             <select
               value={exerciseId}

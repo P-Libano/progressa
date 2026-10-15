@@ -133,6 +133,11 @@ export default function RoutinePage() {
           </span>
         )}
       </button>
+      {why && (
+        <Link to="/guia" className="mt-1 block px-1 text-xs text-muted underline underline-offset-2">
+          O que significam %1RM e RPE?
+        </Link>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <Link to="/ia/rotina" className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface py-2.5 hover:border-muted">

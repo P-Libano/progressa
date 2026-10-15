@@ -54,9 +54,14 @@ Em semana de deload, toda estratégia devolve a prescrição de deload e não co
 ## Periodização
 - **Bloco 3+1** (Força, Powerbuilding): rampa de %1RM do principal (80 → 85 → 90) e semana 4 com 60% das séries e 85% da carga.
 - **Reativo** (Hipertrofia, Gasto, Resistência): deload por estagnação (como hoje) + deload planejado a cada 6 semanas.
-- O app não conhece o 1RM do usuário: o %1RM aparece como referência ao lado do RPE alvo, e a carga sugerida vem do
-  histórico de sessões (estratégia de progressão). **Pendente:** converter %1RM em kg a partir do 1RM estimado (Epley)
-  que o histórico já calcula.
+- **1RM estimado e conversão para kg** (`progression/carga.ts`): Epley sobre a melhor série da última sessão de carga,
+  com as reps em reserva do RPE somadas (60 × 8 em RPE 8 → 60 × (1 + 10/30) = 80 kg); séries acima de 12 reps só
+  entram se não houver outra. O %1RM vira kg (1RM × %); sem %1RM, Epley invertido com reps + reps em reserva. Tudo
+  arredondado a 0,5 kg.
+  - **No treino**, "A conta" mostra o 1RM estimado, a faixa em kg que a prescrição pede e a % do 1RM em que a sugestão
+    cai. É informativa: quem decide subir, manter ou reduzir continua sendo a estratégia do objetivo.
+  - **Primeira vez num exercício**: a pessoa informa peso × reps que já faz e o app sugere a carga de partida pelo meio
+    da faixa prescrita (%1RM ou reps + RPE).
 
 ## Sessão
 - `SetLog` ganha `rpe` (opcional, 6–10 em 0,5) e `completedAt` (mede descanso real → densidade).

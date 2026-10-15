@@ -4,6 +4,7 @@ import { displayName } from '../data/catalog'
 import type { Exercise } from '../data/types'
 import { parseNumber, type SessionExercise } from '../domain/session'
 import { fmtRest } from '../programacao/explain'
+import { contaFor, fromReference } from '../programacao/progression/carga'
 import { fmtKg, fmtReps, workingWeight } from '../programacao/progression/common'
 import type { SuggestionKind } from '../programacao/types'
 import { ExerciseGif } from './ExerciseMedia'
@@ -89,6 +90,31 @@ function bannerTitle(item: SessionExercise, bodyweight: boolean): string {
   }
 }
 
+/** Primeira vez: peso × reps que a pessoa já faz → carga de partida pela conta do 1RM. */
+function ReferenceCalc({ prescription, onUse }: { prescription: SessionExercise['prescription']; onUse: (kg: number) => void }) {
+  const [weight, setWeight] = useState<number | null>(null)
+  const [reps, setReps] = useState<number | null>(null)
+  const calc = weight && reps ? fromReference({ weight, reps }, prescription) : null
+  return (
+    <div className="rounded-xl border border-line bg-bg p-2.5">
+      <p className="text-xs font-medium">Já sabe quanto usa neste exercício?</p>
+      <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+        <NumberField label="Peso de referência" value={weight} placeholder="kg" onCommit={setWeight} />
+        <span className="text-muted">×</span>
+        <NumberField label="Reps de referência" value={reps} step="numeric" placeholder="reps" onCommit={setReps} />
+      </div>
+      {calc && (
+        <>
+          <p className="mt-1.5 text-[11px] leading-snug text-muted">{calc.text}</p>
+          <button onClick={() => onUse(calc.kg)} className="mt-1.5 w-full rounded-lg bg-accent/15 py-2 text-sm font-medium text-accent">
+            Usar {fmtKg(calc.kg)} nas séries
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 const range = (r?: { min: number; max: number }) => (!r ? '' : r.min === r.max ? `${r.min}` : `${r.min}–${r.max}`)
 
 export function SessionExerciseCard({
@@ -131,6 +157,8 @@ export function SessionExerciseCard({
   const banner = BANNER[s.kind]
   const target = timed ? `${p.sets}×${p.workSec}s` : `${p.sets}×${range(p.reps)}`
   const intensity = [p.pct1rm && `${range(p.pct1rm)}% 1RM`, p.rpe && `RPE ${range(p.rpe)}`].filter(Boolean).join(' · ')
+  const conta = !timed && !bodyweight ? contaFor(item.recent ?? [], p, s.weight) : null
+  const firstOpen = item.log.findIndex((l) => !l.done)
   const cols = timed ? 'grid-cols-[2rem_1fr_2.75rem]' : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_2.75rem]'
 
   return (
@@ -171,6 +199,16 @@ export function SessionExerciseCard({
                 </p>
                 <p className="mt-0.5 text-xs leading-snug opacity-90">{s.reason}</p>
               </div>
+              {conta && (
+                <details className="rounded-xl border border-line bg-bg px-2.5 py-2 text-xs">
+                  <summary className="cursor-pointer font-medium">A conta · 1RM ≈ {fmtKg(conta.estimate.e1rm)}</summary>
+                  <ul className="mt-1 space-y-0.5 leading-snug text-muted">
+                    {conta.lines.map((l) => (
+                      <li key={l}>{l}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <p className="text-xs text-muted">
                 Alvo: {target}
                 {intensity && ` · ${intensity}`} · {timed ? `pausa ${p.restSec}s` : `descanso ${fmtRest(p.restSec)}`}
@@ -197,6 +235,12 @@ export function SessionExerciseCard({
               )}
             </div>
           </div>
+
+          {s.kind === 'start' && !timed && !bodyweight && !readOnly && firstOpen !== -1 && (
+            <div className="mt-3">
+              <ReferenceCalc prescription={p} onUse={(kg) => onWeight(firstOpen, kg)} />
+            </div>
+          )}
 
           <div className={`mt-3 grid ${cols} items-center gap-1.5 text-center text-[11px] text-muted`}>
             <span>#</span>
@@ -252,7 +296,14 @@ export function SessionExerciseCard({
               )
             })}
           </ol>
-          {!timed && <p className="mt-1.5 text-[11px] text-muted">RPE é opcional (1–10; 10 = falha). Ajuda a progressão por carga.</p>}
+          {!timed && (
+            <p className="mt-1.5 text-[11px] text-muted">
+              RPE é opcional (1–10; 10 = falha). Ajuda a progressão por carga.{' '}
+              <Link to="/guia" className="text-ink underline underline-offset-2">
+                Entenda 1RM e RPE
+              </Link>
+            </p>
+          )}
           {!readOnly && (
             <div className="mt-2 flex justify-end gap-2 text-sm">
               <button onClick={onRemoveSet} className="rounded-lg px-3 py-1.5 text-muted hover:bg-surface-2">

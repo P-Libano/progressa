@@ -13,7 +13,7 @@ import {
 } from 'recharts'
 import { MUSCLE_GROUP_PT, type MuscleGroup } from '../data/curated'
 import { fmtKg } from '../programacao/progression/common'
-import { fmtDay, type LoadPoint } from '../domain/stats'
+import { fmtDay, type LoadPoint, type TonnagePoint } from '../domain/stats'
 
 // Tokens (iguais ao index.css). Marcas usam --color-chart; texto nunca usa a cor da série.
 const C = {
@@ -91,6 +91,7 @@ export function LoadChart({ points }: { points: LoadPoint[] }) {
                         {bodyweight ? `${p.totalReps} reps` : fmtKg(p.weight)} <span className="font-normal text-muted">× {p.reps}</span>
                       </p>
                       {!bodyweight && <p className="text-muted">1RM estimado: {fmtKg(p.e1rm)}</p>}
+                      {!bodyweight && <p className="text-muted">Volume: {fmtTon(p.volumeKg)}</p>}
                     </TooltipBox>
                   )
                 }}
@@ -139,6 +140,73 @@ export function LoadChart({ points }: { points: LoadPoint[] }) {
                 <td>{bodyweight ? p.totalReps : fmtKg(p.weight)}</td>
                 <td>{p.reps}</td>
                 {!bodyweight && <td>{fmtKg(p.e1rm)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
+    />
+  )
+}
+
+export const fmtTon = (kg: number) => `${Math.round(kg).toLocaleString('pt-BR')} kg`
+
+/** Volume levantado (peso × reps) por semana: colunas, uma cor. */
+export function TonnageChart({ points }: { points: TonnagePoint[] }) {
+  const data = points.map((p) => ({ ...p, label: fmtDay(p.week) }))
+  return (
+    <ChartOrTable
+      chart={
+        <figure aria-label="Volume levantado por semana">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }} barCategoryGap="28%">
+              <CartesianGrid stroke={C.grid} strokeWidth={1} vertical={false} />
+              <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} tickMargin={8} axisLine={{ stroke: C.grid }} interval="preserveStartEnd" minTickGap={16} />
+              <YAxis
+                tick={AXIS_TICK}
+                tickLine={false}
+                axisLine={false}
+                width={48}
+                allowDecimals={false}
+                tickFormatter={(v: number) => v.toLocaleString('pt-BR')}
+              />
+              <Tooltip
+                cursor={{ fill: 'var(--color-surface-2)' }}
+                content={({ active, payload }) => {
+                  const p = active && payload?.[0]?.payload
+                  if (!p) return null
+                  return (
+                    <TooltipBox>
+                      <p className="text-muted">Semana de {fmtDay(p.week)}</p>
+                      <p className="font-semibold text-ink">{fmtTon(p.kg)}</p>
+                      <p className="text-muted">
+                        {p.sessions} {p.sessions === 1 ? 'treino' : 'treinos'}
+                      </p>
+                    </TooltipBox>
+                  )
+                }}
+              />
+              {/* sem rótulo na barra: o valor da semana atual já está no card acima do gráfico */}
+              <Bar dataKey="kg" fill={C.mark} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
+        </figure>
+      }
+      table={
+        <table className="w-full text-sm tabular-nums">
+          <thead className="text-left text-xs text-muted">
+            <tr>
+              <th className="py-1 font-normal">Semana</th>
+              <th className="py-1 font-normal">Treinos</th>
+              <th className="py-1 text-right font-normal">Volume</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {[...points].reverse().map((p) => (
+              <tr key={p.week}>
+                <td className="py-1.5">{fmtDay(p.week)}</td>
+                <td>{p.sessions}</td>
+                <td className="text-right">{fmtTon(p.kg)}</td>
               </tr>
             ))}
           </tbody>

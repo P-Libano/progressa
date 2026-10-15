@@ -32,8 +32,12 @@ seus dados ficam no aparelho.
 - **"Por que este treino":** cada programa explica faixa de reps, descanso, progressão e o que esperar em
   4–8 semanas, sem promessas sem base (o app varre os próprios textos atrás de frases como "acelera o
   metabolismo").
+- **A conta à vista:** cada exercício mostra o 1RM estimado da última sessão, a faixa em kg que a prescrição pede e onde
+  a sugestão cai. Na primeira vez, informe um peso × reps que você já faz e o app calcula a carga de partida.
+- **Guia** (Ajustes → Guia): 1RM, RPE, as contas do app e o volume, explicados sem jargão.
 - **Trocar exercício** por outro do mesmo movimento/grupo e equipamento.
-- **Histórico:** gráfico de carga por exercício (com 1RM estimado) e séries semanais por grupo muscular.
+- **Histórico:** volume levantado (peso × reps) por semana, gráfico de carga por exercício (com 1RM estimado) e
+  séries semanais por grupo muscular. O fim de cada treino compara o volume com a última vez do mesmo dia.
 - **Backup** em JSON (exportar/importar) e **IA opcional** com a sua chave da Claude API.
 
 ## Rodar localmente

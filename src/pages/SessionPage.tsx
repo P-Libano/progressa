@@ -1,11 +1,14 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { RestTimer } from '../components/RestTimer'
 import { SessionExerciseCard } from '../components/SessionExerciseCard'
 import { Button, Screen } from '../components/ui'
 import { displayName } from '../data/catalog'
 import { fmtKg } from '../programacao/progression/common'
+import { db } from '../db'
 import { sessionSummary } from '../domain/session'
+import { fmtDay, previousSameDay } from '../domain/stats'
 import { useExerciseMap } from '../lib/useCatalog'
 import {
   addSet,
@@ -37,6 +40,7 @@ export default function SessionPage() {
   const navigate = useNavigate()
   const [open, setOpen] = useState<number | null | undefined>(undefined)
   const [confirm, setConfirm] = useState<'finish' | 'discard' | null>(null)
+  const doneSessions = useLiveQuery(() => db.sessions.where('status').equals('done').toArray(), [])
 
   const onRest = useCallback((until: number | undefined) => setRest(id, until), [id])
 
@@ -63,6 +67,9 @@ export default function SessionPage() {
 
   if (done) {
     const sum = sessionSummary(session)
+    const prev = doneSessions && previousSameDay(session, doneSessions)
+    const prevKg = prev ? sessionSummary(prev).volumeKg : 0
+    const delta = prevKg > 0 ? Math.round(((sum.volumeKg - prevKg) / prevKg) * 100) : null
     return (
       <Screen title={session.dayName} back>
         <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
@@ -83,6 +90,27 @@ export default function SessionPage() {
               </div>
             ))}
           </dl>
+          {sum.volumeKg > 0 && (
+            <p className="mt-3 border-t border-accent/20 pt-2 text-sm">
+              {prev && delta !== null ? (
+                <>
+                  Volume{' '}
+                  <strong className={`tabular-nums ${delta >= 0 ? 'text-accent' : ''}`}>
+                    {delta >= 0 ? '+' : '−'}
+                    {Math.abs(delta)}%
+                  </strong>{' '}
+                  <span className="text-muted">
+                    vs a última vez ({fmtDay(prev.startedAt)}: {fmtKg(Math.round(prevKg))}).
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted">Primeiro registro deste treino.</span>
+              )}{' '}
+              <Link to="/historico" className="text-xs text-muted underline underline-offset-2">
+                Ver evolução
+              </Link>
+            </p>
+          )}
         </div>
         <ul className="mt-4 space-y-2">
           {session.exercises.map((e) => {

@@ -1,4 +1,5 @@
 import { MUSCLE_GROUPS, type MuscleGroup } from '../data/curated'
+import { estimate1rm } from '../programacao/progression/carga'
 import { totalReps, workingWeight } from '../programacao/progression/common'
 import { sessionSummary, toResult, type Session } from './session'
 
@@ -29,9 +30,11 @@ export interface LoadPoint {
   totalReps: number
   /** 1RM estimado (Epley) da melhor série. */
   e1rm: number
+  /** Peso × reps somado nas séries. */
+  volumeKg: number
 }
 
-export const epley = (weight: number, reps: number) => (reps <= 1 ? weight : weight * (1 + reps / 30))
+export { epley } from '../programacao/progression/carga'
 
 /** Série temporal de carga de um exercício (uma entrada por sessão concluída). */
 export function loadSeries(exerciseId: string, sessions: Session[]): LoadPoint[] {
@@ -46,7 +49,8 @@ export function loadSeries(exerciseId: string, sessions: Session[]): LoadPoint[]
         weight: workingWeight(r),
         reps: r.sets.map((x) => x.reps).join('/'),
         totalReps: totalReps(r),
-        e1rm: Math.round(Math.max(...r.sets.map((x) => epley(x.weight, x.reps))) * 10) / 10,
+        e1rm: estimate1rm(r.sets)?.e1rm ?? 0,
+        volumeKg: r.sets.reduce((a, x) => a + x.weight * x.reps, 0),
       })),
   )
 }
@@ -73,6 +77,34 @@ export function weeklySetsByGroup(sessions: Session[], week: number): Record<Mus
     for (const e of s.exercises) out[e.group] += e.log.filter((l) => l.done && l.reps !== null).length
   }
   return out
+}
+
+export interface TonnagePoint {
+  week: number
+  /** Peso × reps somado em todas as séries concluídas da semana. */
+  kg: number
+  sessions: number
+}
+
+/** Volume levantado por semana: as `n` semanas até a de `now`, inclusive as vazias (ordem cronológica). */
+export function weeklyTonnage(sessions: Session[], n = 8, now = Date.now()): TonnagePoint[] {
+  const current = weekStart(now)
+  const out = Array.from({ length: n }, (_, i): TonnagePoint => ({ week: addWeeks(current, i - n + 1), kg: 0, sessions: 0 }))
+  const byWeek = new Map(out.map((p) => [p.week, p]))
+  for (const s of done(sessions)) {
+    const p = byWeek.get(weekStart(s.startedAt))
+    if (!p) continue
+    p.kg += sessionSummary(s).volumeKg
+    p.sessions++
+  }
+  return out
+}
+
+/** Última sessão concluída do mesmo dia do programa, antes desta (para comparar o volume). */
+export function previousSameDay(s: Session, sessions: Session[]): Session | undefined {
+  return done(sessions)
+    .filter((x) => x.id !== s.id && x.programId === s.programId && x.dayKey === s.dayKey && x.startedAt < s.startedAt)
+    .at(-1)
 }
 
 export interface WeekGroup {
